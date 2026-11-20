@@ -1,10 +1,19 @@
-# Validation record — 0.5.2-alpha
+# Validation record — 0.5.3-alpha
 
-Date: 2026-11-20. Android build: debug APK, `versionCode` 10, `versionName` 0.5.2-alpha.
+Date: 2026-11-21. Android target: `versionCode` 11, `versionName` 0.5.3-alpha. This document records the 0.5.3-alpha source checks; previous emulator validation is retained below as the 0.5.2-alpha baseline.
 
 This record separates automated checks from interactive emulator testing. Passing checks do not prove physical-device stability.
 
-## Automated checks
+## 0.5.3-alpha patch checks
+
+- The narrow-screen pairing CSS places `.pin-row .primary-button` in grid column 1 and `.pin-row .secondary-button` in grid column 2.
+- `internal/web/web/app.css` and `android-client/app/src/main/assets/controller/app.css` are byte-for-byte identical.
+- The service-worker cache is bumped to `touchbridge-shell-v8`, and the bundled asset query strings identify `0.5.3-alpha`.
+- A new APK was not built in this preparation environment because Android SDK 35 and Gradle are not installed. Build it on the established development machine to retain its existing debug signing key.
+
+## 0.5.2-alpha baseline validation
+
+### Automated checks
 
 - `gofmt -l .` — no unformatted Go files in the 0.5.2 source tree.
 - `go test ./...` — passed for all Go packages after the final source changes.
@@ -16,14 +25,14 @@ This record separates automated checks from interactive emulator testing. Passin
 - Android build — `./gradlew assembleDebug --no-daemon` passed and produced `android-client/app/build/outputs/apk/debug/app-debug.apk` (about 911 KiB).
 - Install — `adb install -r app-debug.apk` succeeded on the API 37 emulator.
 
-### Not run
+#### Not run
 
 - `scripts/check.sh` could not run in full because the environment's Node installation is broken (`libsimdjson.so.36` missing). The individual JavaScript, DOM, asset-parity, CSS and Go checks above were run directly instead.
 - `node --test internal/web/web/gamepad-core.test.cjs` was therefore not executed for this build. The last recorded result on this source line was 13 passing tests.
 - `govulncheck`, CodeQL and the GitHub Actions workflows have not run in this environment. They run on push or schedule in CI.
 - No release-signed APK was produced; the validated artifact is debug-signed.
 
-## Interactive emulator tests
+### Interactive emulator tests
 
 Device: Android emulator `Medium_Phone_API_37.0`, headless, API 37, 914 × 411 CSS viewport in landscape (2.625 device pixel ratio). Package `io.github.touchbridge.mobile`.
 

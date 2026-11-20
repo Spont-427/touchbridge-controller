@@ -1,6 +1,12 @@
-# Build status — 0.5.2-alpha
+# Build status — 0.5.3-alpha
 
-Date: 2026-11-20. Android `versionCode` 10, `versionName` 0.5.2-alpha. Desktop `appVersion` 0.5.2-alpha.
+Date: 2026-11-21. Android `versionCode` 11, `versionName` 0.5.3-alpha. Desktop `appVersion` 0.5.3-alpha.
+
+## Changes in 0.5.3-alpha
+
+- Add the optional Windows virtual gamepad backend through ViGEmBus 1.22.0, including one-time setup and capability reporting.
+- Fix the Android PIN pairing row on narrow screens by placing Pair device and Disconnect in separate grid columns.
+- Keep the shared desktop and Android CSS assets byte-identical.
 
 ## Implemented
 
@@ -29,7 +35,7 @@ Date: 2026-11-20. Android `versionCode` 10, `versionName` 0.5.2-alpha. Desktop `
 - JavaScript syntax passed for the app, gamepad core, theme and service worker.
 - DOM audit: 86 direct references, no missing IDs. CSS braces balanced at 769/769.
 - Android assets are byte-identical to the shared web UI after sync.
-- Android debug APK built successfully and was installed on an API 37 emulator.
+- The `0.5.2-alpha` baseline debug APK built successfully and was installed on an API 37 emulator. The `0.5.3-alpha` debug APK was built on the developer release machine with Android `versionCode` 11 and `versionName` 0.5.3-alpha; its signing certificate matches the previously published `0.5.2-alpha` APK.
 - Emulator interaction tests covered layout create/duplicate/rename/delete, preset protection, active-layout fallback, persistence across force-stop, button sets, themes, system Back exit and haptics on/off.
 - Haptics were verified through `dumpsys vibrator_manager`: an immediate `Prebaked=CLICK`, `usage: TOUCH` request with the toggle on, and no new request with it off.
 
@@ -44,7 +50,8 @@ See [docs/validation.md](docs/validation.md) for the full record.
 - Real games, anti-cheat software, long sessions and unstable networks.
 - `scripts/check.sh` in full: the environment's Node installation is broken (`libsimdjson.so.36`).
 - `govulncheck`, CodeQL and GitHub Actions execution from this workspace.
-- Release signing and store distribution. The built artifact is a debug APK.
+- Release signing and store distribution. The alpha artifact remains a debug APK.
+- Physical-device regression testing of the `0.5.3-alpha` APK remains outstanding.
 
 ## Important caveats
 
@@ -52,3 +59,7 @@ See [docs/validation.md](docs/validation.md) for the full record.
 - Android targets API 35. Implement Android 17's `ACCESS_LOCAL_NETWORK` runtime permission before raising the target SDK to 37.
 - Windows virtual gamepad output requires ViGEmBus 1.22.0 to be installed separately; Linux generic uinput gamepad support depends on kernel and permission configuration.
 - Desktop binaries are cross-compiled, not exercised on physical desktops in this environment.
+
+## Release APK
+
+The `0.5.3-alpha` debug APK has been built on the developer's established Android build machine. It uses Android `versionCode` 11 and its signing certificate matches the previous `0.5.2-alpha` APK, allowing in-place updates for existing testers. The source repository intentionally excludes generated APKs and build outputs; attach the separately supplied `TouchBridge-0.5.3-alpha-debug.apk` file to the GitHub release tagged `v0.5.3-alpha`. Rebuild only on the same development machine if the APK needs to be regenerated, so the existing debug signing key is reused.

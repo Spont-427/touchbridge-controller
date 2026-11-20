@@ -1,4 +1,4 @@
-# Controller UI and profiles (0.5.2-alpha)
+# Controller UI and profiles (0.5.3-alpha)
 
 The Android application bundles the shared controller UI locally under `app/src/main/assets/controller/`. The library, profiles, layout editor, stick settings and controller preview work without a desktop server. A server is needed only to transmit controller, keyboard or mouse state to a PC.
 

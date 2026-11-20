@@ -18,13 +18,15 @@
 
 ## Command line
 
-From the source archive root, with Gradle 8.9 and Android SDK configured:
+From the repository root, with JDK 17 and Android SDK 35 configured:
 
 ```sh
-gradle -p android-client assembleDebug --no-daemon
+./scripts/build-android-release.sh
 ```
 
-The GitHub Actions workflow builds and uploads the debug APK as an artifact. The local artifact-preparation environment did not have the Android SDK/Gradle installation, so no local APK is claimed as built or tested.
+The script runs the Gradle wrapper and copies the APK to `dist/TouchBridge-0.5.3-alpha-debug.apk`. Attach that file to the GitHub release tagged `v0.5.3-alpha`.
+
+**Keep the same signing key for updates:** the alpha APKs are debug-signed. Build on the same development machine used for the previous alpha APK so Android Studio/Gradle reuses that machine's `~/.android/debug.keystore`. Do not delete or regenerate that keystore, and never commit it to Git. The `0.5.3-alpha` APK built for this release has a signing certificate matching the previously published `0.5.2-alpha` APK. The APK is distributed separately as a GitHub Release asset; generated APKs are intentionally excluded from the source repository. Building on a different machine or an ephemeral CI runner will normally use a different debug key, and Android will reject it as an in-place update; users would have to uninstall the old app first (which removes its local app data).
 
 ## App architecture
 

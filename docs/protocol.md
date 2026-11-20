@@ -1,4 +1,4 @@
-# TouchBridge LAN protocol (0.5.2-alpha)
+# TouchBridge LAN protocol (0.5.3-alpha)
 
 TouchBridge uses a small JSON protocol over a persistent WebSocket connection. The default TCP listener is port `8765`.
 

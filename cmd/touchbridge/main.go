@@ -150,6 +150,9 @@ func main() {
 	if *dryRun {
 		fmt.Println("  Input mode     : DRY RUN (no desktop input will be sent)")
 	}
+	if provider, ok := backend.(input.GamepadStatusProvider); ok {
+		fmt.Printf("  Gamepad        : %s\n", provider.GamepadStatus())
+	}
 	if *tlsCert == "" {
 		fmt.Println("  Security       : HTTP is unencrypted; use only on a trusted private network")
 	} else {

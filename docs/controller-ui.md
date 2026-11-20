@@ -181,7 +181,7 @@ The Android app remembers paired servers. The first connection uses a six-digit 
 - The starter layouts are editable starting points, not game macros or game-detection integrations.
 - Layouts are stored per install; there is no cloud sync or cross-device transfer beyond JSON export/import.
 - Linux gamepad creation requires `/dev/uinput` and permission. The exposed device is a generic evdev gamepad.
-- Windows virtual gamepad emulation is not enabled; mouse and keyboard are available.
+- Windows virtual gamepad output requires ViGEmBus; without it, mouse and keyboard remain available.
 - RTT measures network round trip, not one-way input-to-photon latency.
 - The app targets API 35. Android 17's `ACCESS_LOCAL_NETWORK` runtime permission is not implemented yet.
 

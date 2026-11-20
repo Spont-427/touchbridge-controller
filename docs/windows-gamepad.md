@@ -1,25 +1,106 @@
-# Windows virtual gamepad status
+# Windows virtual gamepad
 
-TouchBridge 0.3.1-alpha provides Windows mouse and keyboard injection through the supported `SendInput` API. Windows virtual gamepad creation remains disabled in this release.
+TouchBridge injects mouse and keyboard input through the supported `SendInput`
+API. Windows has no public API for creating a virtual gamepad, so controller
+output requires a virtual-device driver. TouchBridge uses **ViGEmBus** and
+presents an Xbox 360-compatible controller, which games read through XInput.
 
-## Why it is not bundled yet
+The integration is optional. Without the driver, TouchBridge still serves the
+controller UI and injects mouse and keyboard input; the `capabilities` message
+reports `"gamepad": false` and the client stays in mouse/keyboard mode. The
+server prints the detected gamepad status in its startup banner.
 
-A virtual Xbox/XInput device on Windows is not created by the public `SendInput` API. It requires a separate virtual HID/XUSB device provider and its driver/install lifecycle. We reviewed current choices on 19 November 2026:
+## Requirements
 
-- **ViGEmBus**: the [upstream Nefarius repository](https://github.com/nefarius/ViGEmBus) explicitly marks the driver retired and archived (2 November 2023), and its [end-of-life notice](https://docs.nefarius.at/projects/ViGEm/End-of-Life/) says it will receive no further updates. It is not a sensible default for a new project.
-- **HIDMaestro**: the [upstream project](https://github.com/hifihedgehog/HIDMaestro) is MIT-licensed and advertises a user-mode virtual-controller approach. It is promising, but it is still a relatively small ecosystem, requires a local driver/certificate installation and an elevated setup step, and has not been independently audited or tested by TouchBridge on physical Windows machines.
-- **libvirtualhid**: the [cross-platform library](https://github.com/LizardByte/libvirtualhid) is MIT-licensed, but its [Windows UMDF driver/broker/package](https://github.com/LizardByte/libvirtualhid/blob/master/LICENSES/license-map.md) use a separate source-available license and Windows gamepad creation requires a license. The published driver installer currently targets AMD64, not Windows ARM64.
+- Windows 10 or Windows 11, x64 or ARM64.
+- [ViGEmBus 1.22.0](https://github.com/nefarius/ViGEmBus/releases/tag/v1.22.0)
+  installed once. Installation requires administrator rights and may require a
+  restart on first install. The release ZIP's
+  `Setup-TouchBridge-Windows.bat` automates this; TouchBridge does not bundle
+  the driver.
+- The TouchBridge server itself runs **unelevated**. Creating a ViGEmBus target
+  does not require administrator rights.
 
-TouchBridge therefore fails closed: the Gamepad tab reports the missing Windows provider and continues to provide mouse/keyboard control. It will not silently install a retired driver, trust a third-party driver installer, or elevate the complete network-facing server.
+## Automated setup
 
-## Planned integration requirements
+`Setup-TouchBridge-Windows.bat` is an optional, rerunnable one-time setup:
 
-A Windows provider can be added when it meets all of these conditions:
+1. It checks whether ViGEmBus and the TouchBridge firewall rules are already
+   present. If so, it exits without changing anything.
+2. Otherwise it requests administrator permission once (UAC).
+3. It downloads `ViGEmBus_1.22.0_x64_x86_arm64.exe` from the official Nefarius
+   GitHub release, rejects the file unless it is exactly 6,278,576 bytes and
+   its SHA-256 is
+   `89220a7865076b342892f98865f3499fb7c4cfd673159e89d352c360fd014c6a`,
+   then runs the installer silently. A verified copy is kept under `%TEMP%` if
+   the install fails.
+4. It adds inbound firewall rules for TCP 8765 and UDP 8766, limited to the
+   **Private** network profile.
+5. It reports whether a restart is needed and asks you to run
+   `Start-TouchBridge.bat`.
 
-1. Clear redistribution and licensing terms compatible with the intended open-source distribution.
-2. Signed and reproducible driver packages with a documented uninstall/rollback path.
-3. No administrator elevation for the network server itself; elevation, if needed, is isolated to an explicit installer step.
-4. Supported Windows versions and architectures documented by the provider.
-5. Physical-device testing for XInput, SDL/GameInput, connection loss, multiple controllers, sleep/resume and uninstall.
+Use `-NoDriver` or `-NoFirewall` to skip either part. The server itself is
+still started unprivileged by `Start-TouchBridge.bat`.
 
-Until then, do not assume the Windows Gamepad tab can inject a virtual controller.
+## How it behaves
+
+- On startup the server only connects to the ViGEmBus device interface. No
+  controller exists yet.
+- The virtual Xbox 360 controller is plugged in the first time the paired
+  controller sends a `gamepad_state` message, so starting the server does not
+  create a phantom pad.
+- Complete state snapshots are submitted as `XUSB_SUBMIT_REPORT`; that maps
+  directly onto XInput's button, trigger and stick fields.
+- Digital LT/RT mode is honoured: when the client sends `LT`/`RT` in the button
+  set, the corresponding analog trigger is saturated to its maximum.
+- A client disconnect resets all axes, triggers and buttons to neutral but
+  keeps the device plugged in, so reconnecting does not churn the device tree.
+- Server shutdown unplugs the virtual controller. A hard kill cannot run that
+  cleanup; Windows then leaves a stale controller until it is removed from
+  **Control Panel → Devices and Printers**.
+
+## Driver status and caveats
+
+ViGEmBus was archived on 2 November 2023 after a trademark settlement with
+ViGEM GmbH. The retirement was not technical: the last release, 1.22.0, is
+Microsoft-signed, works on Windows 10/11, and is still used by DS4Windows,
+x360ce and similar tools.
+
+ViGEmBus 1.22.0 removed the auto-updater entirely. Installs at or below
+1.21.442 ship an updater that points at a domain that no longer belongs to the
+author; if you must keep one of those, follow the
+[end-of-life guidance](https://docs.nefarius.at/projects/ViGEm/End-of-Life/) to
+repoint or remove it.
+
+## Uninstall and rollback
+
+1. Stop TouchBridge; it unplugs its virtual controller on exit.
+2. Remove ViGEmBus from **Settings → Apps → Installed Apps** if no other
+   application uses it.
+3. Restart Windows if the uninstaller requests it.
+
+Removing the driver only affects gamepad output. Mouse and keyboard injection
+continue to work.
+
+## Not yet verified
+
+This integration and its setup script have been authored and cross-checked
+from Linux, but neither has been exercised on a physical Windows machine from
+this environment. Before relying on it, verify on real hardware:
+
+- `Setup-TouchBridge-Windows.bat`: UAC flow, checksum verification, Advanced
+  Installer silent flags, firewall rule creation, cancellation and rerun.
+- XInput slot assignment and detection in **Set up USB game controllers**.
+- Rumble behaviour (TouchBridge does not consume force feedback, so games send
+  rumble requests that are ignored).
+- Sleep/resume, reconnect and server restart with a plugged device.
+- Multiple controllers and coexistence with DS4Windows or Steam Input.
+- Anti-cheat behaviour in online games.
+
+## Planned second backend
+
+The Windows backend is split behind an internal `gamepadProvider` interface. A
+future release can add a HIDMaestro provider, which is actively maintained and
+supports more device profiles, without changing the mouse/keyboard path or the
+network protocol. HIDMaestro creates devices through an elevated helper or
+broker service, so it needs a separate install/elevation design.

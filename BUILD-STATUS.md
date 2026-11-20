@@ -17,11 +17,14 @@ Date: 2026-11-20. Android `versionCode` 10, `versionName` 0.5.2-alpha. Desktop `
 - Analog or digital LT/RT modes.
 - Android UDP discovery, manual address entry, PIN pairing and Keystore-encrypted trusted reconnect tokens.
 - Optional mouse and keyboard tools.
-- Linux x64/ARM64 and Windows x64 desktop builds; Windows gamepad output remains disabled.
+- Linux x64/ARM64 and Windows x64 desktop builds.
+- Optional Windows virtual gamepad through ViGEmBus: an Xbox 360-compatible XInput controller is created on the first gamepad input, reset on disconnect and unplugged on shutdown. Without the driver, mouse and keyboard remain available.
+- `Setup-TouchBridge-Windows.bat` automates the one-time Windows setup: it verifies and installs the pinned ViGEmBus 1.22.0 package and adds private-network firewall rules for TCP 8765 and UDP 8766.
 
 ## Validation performed
 
-- `go test ./...` passed after the final changes.
+- `go test ./...` passed after the final changes, including ViGEmBus request-encoding tests.
+- Windows amd64, ARM64 and 386 cross-compilation passed with `CGO_ENABLED=0`.
 - Go race tests and `go vet` passed during this source line.
 - JavaScript syntax passed for the app, gamepad core, theme and service worker.
 - DOM audit: 86 direct references, no missing IDs. CSS braces balanced at 769/769.
@@ -36,6 +39,8 @@ See [docs/validation.md](docs/validation.md) for the full record.
 
 - Physical Android hardware, including haptic motor feel, display cutouts and real touch sampling.
 - Physical Windows/Linux input injection, discovery and gamepad enumeration.
+- Physical Windows ViGEmBus behaviour: XInput slot assignment, rumble, sleep/resume, reconnect and coexistence with other virtual-controller tools.
+- The Windows setup script's UAC flow, Advanced Installer silent flags and firewall rule creation have not been executed on Windows from this environment.
 - Real games, anti-cheat software, long sessions and unstable networks.
 - `scripts/check.sh` in full: the environment's Node installation is broken (`libsimdjson.so.36`).
 - `govulncheck`, CodeQL and GitHub Actions execution from this workspace.
@@ -45,5 +50,5 @@ See [docs/validation.md](docs/validation.md) for the full record.
 
 - Default HTTP/WebSocket transport is unencrypted. Tokens are protected at rest on Android and hashed on the server, but not encrypted in transit without TLS.
 - Android targets API 35. Implement Android 17's `ACCESS_LOCAL_NETWORK` runtime permission before raising the target SDK to 37.
-- Windows virtual gamepad output is not enabled; Linux generic uinput gamepad support depends on kernel and permission configuration.
+- Windows virtual gamepad output requires ViGEmBus 1.22.0 to be installed separately; Linux generic uinput gamepad support depends on kernel and permission configuration.
 - Desktop binaries are cross-compiled, not exercised on physical desktops in this environment.

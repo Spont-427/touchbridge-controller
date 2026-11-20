@@ -64,7 +64,7 @@ The controller sends complete state snapshots rather than individual axis deltas
 
 Stick axes are normalized to `[-1, 1]`; triggers are normalized to `[0, 1]`. `buttons` contains the currently held controls from the supported set `A`, `B`, `X`, `Y`, `LB`, `RB`, `BACK`, `START`, `GUIDE`, `LS`, `RS`, and `DPAD_UP`, `DPAD_DOWN`, `DPAD_LEFT`, `DPAD_RIGHT`. Values outside those ranges, non-finite numbers, unknown buttons and duplicate button names are rejected.
 
-Use `{"type":"gamepad_reset"}` to return all axes, triggers and buttons to neutral. A client disconnect and `release_all` also reset the virtual gamepad. Linux exposes an evdev-compatible virtual gamepad through `/dev/uinput` when the kernel module and permissions allow it. Windows mouse/keyboard input works, but a virtual gamepad provider is not enabled in this alpha release.
+Use `{"type":"gamepad_reset"}` to return all axes, triggers and buttons to neutral. A client disconnect and `release_all` also reset the virtual gamepad. Linux exposes an evdev-compatible virtual gamepad through `/dev/uinput` when the kernel module and permissions allow it. Windows exposes an Xbox 360-compatible controller through ViGEmBus when the driver is installed; without it, `capabilities.gamepad` is `false` and only mouse and keyboard input are accepted.
 
 ## Keepalive and latency probe
 

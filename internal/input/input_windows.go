@@ -4,6 +4,7 @@ package input
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"runtime"
 	"syscall"
@@ -21,16 +22,37 @@ type winInput struct {
 	Data [32]byte
 }
 
+// gamepadProvider is the optional virtual-gamepad transport. Keeping it behind
+// an interface lets a second Windows backend be added without changing the
+// mouse and keyboard path or the protocol layer.
+type gamepadProvider interface {
+	GamepadAvailable() bool
+	GamepadStatus() string
+	SetGamepadState(GamepadState) error
+	ResetGamepad() error
+	Close() error
+}
+
 type Windows struct {
-	heldKeys map[string]bool
-	heldBtns map[string]bool
+	heldKeys   map[string]bool
+	heldBtns   map[string]bool
+	gamepad    gamepadProvider
+	gamepadErr error
 }
 
 func New() (Backend, error) {
 	if err := user32.Load(); err != nil {
 		return nil, fmt.Errorf("load user32.dll: %w", err)
 	}
-	return &Windows{heldKeys: map[string]bool{}, heldBtns: map[string]bool{}}, nil
+	w := &Windows{heldKeys: map[string]bool{}, heldBtns: map[string]bool{}}
+	gamepad, err := newViGEmProvider()
+	if err != nil {
+		// A missing driver must not disable mouse and keyboard control.
+		w.gamepadErr = err
+	} else {
+		w.gamepad = gamepad
+	}
+	return w, nil
 }
 
 func (w *Windows) send(in *winInput) error {
@@ -119,6 +141,11 @@ func (w *Windows) Key(key string, down bool) error {
 }
 func (w *Windows) ReleaseAll() error {
 	var first error
+	if w.gamepad != nil {
+		if err := w.gamepad.ResetGamepad(); err != nil && first == nil {
+			first = err
+		}
+	}
 	for key := range w.heldKeys {
 		if err := w.Key(key, false); err != nil && first == nil {
 			first = err
@@ -131,7 +158,15 @@ func (w *Windows) ReleaseAll() error {
 	}
 	return first
 }
-func (w *Windows) Close() error { return w.ReleaseAll() }
+func (w *Windows) Close() error {
+	first := w.ReleaseAll()
+	if w.gamepad != nil {
+		if err := w.gamepad.Close(); err != nil && first == nil {
+			first = err
+		}
+	}
+	return first
+}
 
 var windowsVK = func() map[string]uint16 {
 	m := map[string]uint16{"ENTER": 0x0D, "ESC": 0x1B, "SPACE": 0x20, "TAB": 0x09, "BACKSPACE": 0x08, "DELETE": 0x2E,
@@ -148,14 +183,33 @@ var windowsVK = func() map[string]uint16 {
 	return m
 }()
 
-// Windows gamepad injection is intentionally unavailable in this build.
-// The retired ViGEmBus driver is not bundled. A maintained third-party
-// UMDF-based provider is being evaluated, but it requires elevation for
-// virtual-device creation; we will not silently elevate the entire desktop
-// server or ship an unverified driver integration.
-func (w *Windows) GamepadAvailable() bool { return false }
-func (w *Windows) GamepadStatus() string {
-	return "Windows virtual gamepad is not enabled yet. Mouse and keyboard work normally; no third-party driver is installed or required."
+// Gamepad injection requires a virtual-device driver because Windows exposes
+// no public API for it. ViGEmBus is used when installed; without it, the
+// capability response advertises no gamepad and mouse/keyboard keep working.
+func (w *Windows) GamepadAvailable() bool {
+	return w.gamepad != nil && w.gamepad.GamepadAvailable()
 }
-func (w *Windows) SetGamepadState(GamepadState) error { return ErrUnsupported }
-func (w *Windows) ResetGamepad() error                { return nil }
+
+func (w *Windows) GamepadStatus() string {
+	if w.gamepad != nil {
+		return w.gamepad.GamepadStatus()
+	}
+	if w.gamepadErr != nil && !errors.Is(w.gamepadErr, ErrUnsupported) {
+		return "Windows virtual gamepad unavailable (" + w.gamepadErr.Error() + "). Install ViGEmBus 1.22.0 to enable an Xbox 360-compatible controller; mouse and keyboard work without it."
+	}
+	return "Windows virtual gamepad unavailable: install ViGEmBus 1.22.0 to enable an Xbox 360-compatible controller. Mouse and keyboard work without it."
+}
+
+func (w *Windows) SetGamepadState(state GamepadState) error {
+	if w.gamepad == nil {
+		return ErrUnsupported
+	}
+	return w.gamepad.SetGamepadState(state)
+}
+
+func (w *Windows) ResetGamepad() error {
+	if w.gamepad == nil {
+		return nil
+	}
+	return w.gamepad.ResetGamepad()
+}

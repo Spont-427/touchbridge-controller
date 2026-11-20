@@ -12,10 +12,18 @@ WIN_DIR="$DIST/package-windows-x64"
 rm -rf "$WIN_DIR"
 mkdir -p "$WIN_DIR"
 cp "$DIST/touchbridge-windows-amd64.exe" "$WIN_DIR/touchbridge.exe"
+cp "$ROOT/packaging/windows/"* "$WIN_DIR/"
 cat > "$WIN_DIR/Start-TouchBridge.bat" <<'BAT'
 @echo off
 setlocal
 cd /d "%~dp0"
+reg query "HKLM\SYSTEM\CurrentControlSet\Services\ViGEmBus" >nul 2>&1
+if errorlevel 1 (
+  echo Note: ViGEmBus is not installed, so gamepad output is unavailable.
+  echo Run Setup-TouchBridge-Windows.bat once to install it.
+  echo Mouse and keyboard input will still work.
+  echo.
+)
 echo Starting TouchBridge Server...
 echo Keep this window open while using TouchBridge.
 echo The six-digit pairing PIN will appear below.
@@ -29,14 +37,22 @@ cat > "$WIN_DIR/README.txt" <<'TXT'
 TouchBridge for Windows x64
 
 1. Extract this ZIP file.
-2. Double-click Start-TouchBridge.bat.
-3. Keep the window open. The six-digit pairing PIN appears there.
-4. Connect your Android phone and PC to the same trusted Wi-Fi network.
-5. In the Android app, open Computers, choose Find computers, and select this PC.
-6. Enter the pairing PIN shown in this window.
+2. Optional gamepad setup: double-click Setup-TouchBridge-Windows.bat once.
+   It downloads ViGEmBus 1.22.0 from the official release, verifies its
+   SHA-256 checksum, installs the driver, and adds private-network firewall
+   rules for TCP 8765 and UDP 8766. Windows asks for administrator
+   permission, and may ask you to restart afterwards.
+   Skip this step if you only need mouse and keyboard input.
+3. Double-click Start-TouchBridge.bat.
+4. Keep the window open. The six-digit pairing PIN appears there.
+5. Connect your Android phone and PC to the same trusted Wi-Fi network.
+6. In the Android app, open Computers, choose Find computers, and select this PC.
+7. Enter the pairing PIN shown in this window.
 
-If Windows Firewall asks, allow TouchBridge on Private networks only.
-Windows virtual gamepad output is not available in this alpha release; mouse and keyboard input are supported.
+TouchBridge itself never asks for administrator rights. Without ViGEmBus,
+Start-TouchBridge.bat still runs, but gamepad output is unavailable.
+If you skipped the firewall step, allow TouchBridge on Private networks only
+when Windows asks.
 
 To stop the server, focus this window and press Ctrl+C.
 TXT

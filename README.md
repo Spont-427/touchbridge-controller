@@ -27,13 +27,23 @@ Choose the download for your PC:
 
 | Your PC | Download | How to start |
 |---|---|---|
-| Windows x64 (Intel/AMD) | [**TouchBridge for Windows x64 (.zip)**](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.5.2-alpha/TouchBridge-Windows-x64.zip) | Extract the ZIP and double-click `Start-TouchBridge.bat`. |
+| Windows x64 (Intel/AMD) | [**TouchBridge for Windows x64 (.zip)**](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.5.2-alpha/TouchBridge-Windows-x64.zip) | Extract the ZIP, optionally run `Setup-TouchBridge-Windows.bat` once, then double-click `Start-TouchBridge.bat`. |
 | Linux, 64-bit Intel/AMD | [**TouchBridge for Linux x86_64 (.tar.gz)**](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.5.2-alpha/TouchBridge-Linux-x86_64.tar.gz) | Extract the archive and run `./Install-TouchBridge-Linux.sh` in a terminal. |
 | Linux, ARM64 | [**TouchBridge for Linux ARM64 (.tar.gz)**](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.5.2-alpha/TouchBridge-Linux-ARM64.tar.gz) | Extract the archive and run `./Install-TouchBridge-Linux.sh` in a terminal. |
 
-**Windows:** Extract the ZIP and double-click `Start-TouchBridge.bat`. Keep the server window open while using TouchBridge; the six-digit pairing PIN appears there. If Windows Firewall asks, allow TouchBridge on **Private networks only**. Because the executable is not code-signed, Windows may show a SmartScreen warning; only run it if you downloaded it from the official TouchBridge release. Windows currently supports mouse and keyboard input; virtual gamepad output is not available in this alpha release.
+**Windows:** Extract the ZIP and double-click `Start-TouchBridge.bat`. Keep the server window open while using TouchBridge; the six-digit pairing PIN appears there. If Windows Firewall asks, allow TouchBridge on **Private networks only**. Because the executable is not code-signed, Windows may show a SmartScreen warning; only run it if you downloaded it from the official TouchBridge release. Mouse and keyboard input work out of the box. For gamepad output, run `Setup-TouchBridge-Windows.bat` once: it installs [ViGEmBus 1.22.0](https://github.com/nefarius/ViGEmBus/releases/tag/v1.22.0) after verifying its SHA-256, and adds private-network firewall rules. See [Windows gamepad](docs/windows-gamepad.md). The TouchBridge server itself never asks for administrator rights.
 
 **Linux:** The installer asks for administrator permission to configure `/dev/uinput` and install the server. It then starts TouchBridge and displays the pairing PIN. See [Linux setup](docs/linux-setup.md) for details.
+
+### 3. Windows gamepad (optional)
+
+Windows has no built-in API for creating a virtual gamepad, so controller output needs the third-party ViGEmBus driver. Mouse and keyboard input work without it.
+
+1. Double-click `Setup-TouchBridge-Windows.bat` from the extracted ZIP. Windows will show a UAC prompt. The script downloads ViGEmBus 1.22.0 from the official release, verifies its SHA-256 checksum, installs it, and adds private-network firewall rules for TCP 8765 and UDP 8766. Restart Windows if the installer asks.
+2. Double-click `Start-TouchBridge.bat` as usual. The first gamepad input from a paired phone creates an Xbox 360-compatible controller.
+3. Verify it in **Control Panel → Set up USB game controllers** (or run `joy.cpl`). Games that use XInput will see it as a normal controller.
+
+The setup script is rerunnable and skips anything already present. The TouchBridge server still runs unprivileged; only the setup script's driver and firewall changes request administrator rights. Without ViGEmBus, the `capabilities` response reports no gamepad backend and the app stays in mouse/keyboard mode. To install the driver yourself instead, use the [ViGEmBus 1.22.0 release](https://github.com/nefarius/ViGEmBus/releases/tag/v1.22.0). See [Windows gamepad](docs/windows-gamepad.md) for driver caveats and uninstall steps.
 
 **Release downloads:** When a GitHub Release is published, the `Release downloads` workflow automatically builds and attaches the Windows and Linux packages. They appear under that release's **Assets** after the workflow finishes. The Android APK is uploaded separately as a release asset.
 
@@ -55,13 +65,13 @@ The server must remain running while you use the phone as a controller.
 - Automatic PC discovery or manual server address entry.
 - PIN pairing and trusted reconnection.
 - Linux support for mouse, keyboard and a generic virtual gamepad.
-- Windows support for mouse and keyboard input.
+- Windows support for mouse and keyboard, plus an Xbox 360-compatible (XInput) virtual gamepad when ViGEmBus is installed.
 
 ## Platform support
 
 - **Android:** Android 6.0 or newer.
 - **Linux:** mouse, keyboard and generic virtual gamepad through `/dev/uinput`, subject to kernel support and permissions.
-- **Windows:** mouse and keyboard. Virtual gamepad output is not available in this alpha release.
+- **Windows:** mouse and keyboard out of the box; an Xbox 360-compatible virtual gamepad through ViGEmBus when the driver is installed.
 
 ## Build from source
 
@@ -105,10 +115,12 @@ The packages are created in `dist/`.
 
 The default connection is not encrypted. Use TouchBridge only on a trusted private network unless you configure TLS. Do not expose its ports directly to the public internet.
 
+Windows gamepad output depends on the third-party ViGEmBus kernel driver. TouchBridge does not bundle it; the optional setup script downloads the pinned official release, verifies its SHA-256, and runs it only after you approve the UAC prompt. Install it only from the official release linked above.
+
 ## Documentation
 
 - [Linux setup](docs/linux-setup.md)
-- [Windows gamepad status](docs/windows-gamepad.md)
+- [Windows gamepad](docs/windows-gamepad.md)
 - [Controller UI](docs/controller-ui.md)
 - [Network protocol](docs/protocol.md)
 - [Validation record](docs/validation.md)

@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — Windows virtual gamepad
+
+- Add an optional Windows virtual gamepad backend using ViGEmBus. When the driver is installed, TouchBridge presents an Xbox 360-compatible controller through XInput; mouse and keyboard control is unaffected when it is not.
+- Create the virtual controller lazily on the first gamepad input, reset it on disconnect, and unplug it on server shutdown. The server stays unelevated; only the third-party driver installation requires administrator rights.
+- Split the Windows gamepad transport behind a provider interface so a future HIDMaestro backend can be added without changing the protocol or mouse/keyboard path.
+- Keep the capability response accurate: without the driver, `capabilities.gamepad` is `false` and the client stays in mouse/keyboard mode.
+- Add `Setup-TouchBridge-Windows.bat`, a rerunnable one-time setup that downloads the pinned ViGEmBus 1.22.0 installer, verifies its SHA-256, installs it silently and adds private-network firewall rules for TCP 8765 and UDP 8766.
+- Print the detected gamepad status in the server startup banner so a missing driver is visible before pairing.
+- Document the ViGEmBus 1.22.0 requirement, uninstall path and the retired driver's updater caveat.
+
 ## 0.5.2-alpha — 2026-11-20 — theming, layout library and editor additions
 
 - Add a System / Light / Dark theme setting, persisted on the device. The lightweight AMOLED theme remains the default; the new light paper theme covers the library, computers, settings, tools, controller and editor surfaces, and the Android system bar icons follow the chosen theme.

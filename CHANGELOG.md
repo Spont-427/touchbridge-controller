@@ -7,6 +7,7 @@
 - Split the Windows gamepad transport behind a provider interface so a future HIDMaestro backend can be added without changing the protocol or mouse/keyboard path.
 - Keep the capability response accurate: without the driver, `capabilities.gamepad` is `false` and the client stays in mouse/keyboard mode.
 - Add `Setup-TouchBridge-Windows.bat`, a rerunnable one-time setup that downloads the pinned ViGEmBus 1.22.0 installer, verifies its SHA-256, installs it silently and adds private-network firewall rules for TCP 8765 and UDP 8766.
+- Fix the pairing card on narrow screens: the disabled Disconnect button used to overlap the Pair device button and absorb its taps, so pairing appeared unresponsive. The two buttons now occupy separate grid cells.
 - Print the detected gamepad status in the server startup banner so a missing driver is visible before pairing.
 - Document the ViGEmBus 1.22.0 requirement, uninstall path and the retired driver's updater caveat.
 

@@ -4,7 +4,7 @@
 
 TouchBridge lets you use an Android phone as a controller for a Windows or Linux PC over your local network.
 
-**Current version:** `0.5.2-alpha` · **Status:** Alpha
+**Current version:** `0.5.3-alpha` · **Status:** Alpha
 
 ## Screenshots
 
@@ -33,7 +33,7 @@ You need two parts: the Android app on your phone and the desktop server on your
 
 ### 1. Android app
 
-[**Download TouchBridge for Android (APK)**](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.5.2-alpha/TouchBridge-0.5.2-alpha-debug.apk)
+[**Download TouchBridge for Android (APK)**](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.5.3-alpha/TouchBridge-0.5.3-alpha-debug.apk)
 
 1. Download the APK on your Android phone.
 2. Open it from your Downloads notification or Downloads folder.
@@ -48,9 +48,9 @@ Choose the download for your PC:
 
 | Your PC | Download | How to start |
 |---|---|---|
-| Windows x64 (Intel/AMD) | [**TouchBridge for Windows x64 (.zip)**](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.5.2-alpha/TouchBridge-Windows-x64.zip) | Extract the ZIP, optionally run `Setup-TouchBridge-Windows.bat` once, then double-click `Start-TouchBridge.bat`. |
-| Linux, 64-bit Intel/AMD | [**TouchBridge for Linux x86_64 (.tar.gz)**](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.5.2-alpha/TouchBridge-Linux-x86_64.tar.gz) | Extract the archive and run `./Install-TouchBridge-Linux.sh` in a terminal. |
-| Linux, ARM64 | [**TouchBridge for Linux ARM64 (.tar.gz)**](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.5.2-alpha/TouchBridge-Linux-ARM64.tar.gz) | Extract the archive and run `./Install-TouchBridge-Linux.sh` in a terminal. |
+| Windows x64 (Intel/AMD) | [**TouchBridge for Windows x64 (.zip)**](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.5.3-alpha/TouchBridge-Windows-x64.zip) | Extract the ZIP, optionally run `Setup-TouchBridge-Windows.bat` once, then double-click `Start-TouchBridge.bat`. |
+| Linux, 64-bit Intel/AMD | [**TouchBridge for Linux x86_64 (.tar.gz)**](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.5.3-alpha/TouchBridge-Linux-x86_64.tar.gz) | Extract the archive and run `./Install-TouchBridge-Linux.sh` in a terminal. |
+| Linux, ARM64 | [**TouchBridge for Linux ARM64 (.tar.gz)**](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.5.3-alpha/TouchBridge-Linux-ARM64.tar.gz) | Extract the archive and run `./Install-TouchBridge-Linux.sh` in a terminal. |
 
 **Windows:** Extract the ZIP and double-click `Start-TouchBridge.bat`. Keep the server window open while using TouchBridge; the six-digit pairing PIN appears there. If Windows Firewall asks, allow TouchBridge on **Private networks only**. Because the executable is not code-signed, Windows may show a SmartScreen warning; only run it if you downloaded it from the official TouchBridge release. Mouse and keyboard input work out of the box. For gamepad output, run `Setup-TouchBridge-Windows.bat` once: it installs [ViGEmBus 1.22.0](https://github.com/nefarius/ViGEmBus/releases/tag/v1.22.0) after verifying its SHA-256, and adds private-network firewall rules. See [Windows gamepad](docs/windows-gamepad.md). The TouchBridge server itself never asks for administrator rights.
 
@@ -66,7 +66,7 @@ Windows has no built-in API for creating a virtual gamepad, so controller output
 
 The setup script is rerunnable and skips anything already present. The TouchBridge server still runs unprivileged; only the setup script's driver and firewall changes request administrator rights. Without ViGEmBus, the `capabilities` response reports no gamepad backend and the app stays in mouse/keyboard mode. To install the driver yourself instead, use the [ViGEmBus 1.22.0 release](https://github.com/nefarius/ViGEmBus/releases/tag/v1.22.0). See [Windows gamepad](docs/windows-gamepad.md) for driver caveats and uninstall steps.
 
-**Release downloads:** When a GitHub Release is published, the `Release downloads` workflow automatically builds and attaches the Windows and Linux packages. They appear under that release's **Assets** after the workflow finishes. The Android APK is uploaded separately as a release asset.
+**Release downloads:** When a GitHub Release is published, the `Release downloads` workflow automatically builds and attaches the Windows and Linux packages. They appear under that release's **Assets** after the workflow finishes. The Android APK is built on the developer's release machine and attached separately. From the repository root, run `./scripts/build-android-release.sh`; it creates `dist/TouchBridge-0.5.3-alpha-debug.apk`. Build on the same machine as the previous alpha APK to preserve the debug signing key and allow existing installations to update without losing app data. See [Android APK build instructions](android-client/BUILD-APK.md).
 
 ## Connect your phone to your PC
 

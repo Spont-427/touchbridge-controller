@@ -22,7 +22,7 @@ import (
 	"github.com/Spont-427/touchbridge-controller/internal/web"
 )
 
-const appVersion = "0.5.2-alpha"
+const appVersion = "0.5.3-alpha"
 
 func main() {
 	listen := flag.String("listen", "0.0.0.0:8765", "HTTP listen address")

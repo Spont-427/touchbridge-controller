@@ -1,15 +1,16 @@
 # Changelog
 
-## Unreleased — Windows virtual gamepad
+## 0.5.3-alpha — 2026-11-21 — Windows virtual gamepad and Android pairing fix
 
 - Add an optional Windows virtual gamepad backend using ViGEmBus. When the driver is installed, TouchBridge presents an Xbox 360-compatible controller through XInput; mouse and keyboard control is unaffected when it is not.
 - Create the virtual controller lazily on the first gamepad input, reset it on disconnect, and unplug it on server shutdown. The server stays unelevated; only the third-party driver installation requires administrator rights.
 - Split the Windows gamepad transport behind a provider interface so a future HIDMaestro backend can be added without changing the protocol or mouse/keyboard path.
 - Keep the capability response accurate: without the driver, `capabilities.gamepad` is `false` and the client stays in mouse/keyboard mode.
 - Add `Setup-TouchBridge-Windows.bat`, a rerunnable one-time setup that downloads the pinned ViGEmBus 1.22.0 installer, verifies its SHA-256, installs it silently and adds private-network firewall rules for TCP 8765 and UDP 8766.
-- Fix the pairing card on narrow screens: the disabled Disconnect button used to overlap the Pair device button and absorb its taps, so pairing appeared unresponsive. The two buttons now occupy separate grid cells.
+- Fix the Android PIN pairing row on narrow screens: place the Pair device and Disconnect buttons in separate grid columns so the disabled Disconnect button no longer overlaps or intercepts taps on Pair device.
 - Print the detected gamepad status in the server startup banner so a missing driver is visible before pairing.
 - Document the ViGEmBus 1.22.0 requirement, uninstall path and the retired driver's updater caveat.
+- Bump the Android app and desktop server to 0.5.3-alpha (Android `versionCode` 11) and the service-worker shell cache to v8.
 
 ## 0.5.2-alpha — 2026-11-20 — theming, layout library and editor additions
 

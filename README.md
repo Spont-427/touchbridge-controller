@@ -6,6 +6,27 @@ TouchBridge lets you use an Android phone as a controller for a Windows or Linux
 
 **Current version:** `0.5.2-alpha` · **Status:** Alpha
 
+## Screenshots
+
+**Controller layout (landscape)**
+
+<p align="center">
+  <img src="docs/screenshots/controller-landscape.jpg" alt="TouchBridge controller layout with sticks, D-pad, face buttons and triggers" width="100%">
+</p>
+
+**Android app**
+
+<table>
+  <tr>
+    <th align="center">Layout library</th>
+    <th align="center">Settings</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/layout-library.jpg" alt="TouchBridge layout library showing the available controller presets" width="260"></td>
+    <td align="center"><img src="docs/screenshots/settings.jpg" alt="TouchBridge settings for theme, haptics, triggers and analog sticks" width="260"></td>
+  </tr>
+</table>
+
 ## Download TouchBridge
 
 You need two parts: the Android app on your phone and the desktop server on your PC. Download both from the links below. You do not need to clone this repository, install Go, or compile the project.

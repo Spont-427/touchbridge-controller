@@ -1,0 +1,105 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify formatting
+        run: test -z "$(gofmt -l .)"
+      - name: Unit tests with race detector
+        run: go test -race ./...
+      - name: Static checks
+        run: go vet ./...
+      - name: Short fuzz regression runs
+        run: |
+          GOMAXPROCS=1 go test ./internal/protocol -run='^$' -fuzz=FuzzDecodeNeverPanics -fuzztime=5s -parallel=1
+          GOMAXPROCS=1 go test ./internal/web -run='^$' -fuzz=FuzzReadMessageNeverPanics -fuzztime=5s -parallel=1
+      - name: JavaScript syntax and controller math tests
+        run: |
+          node --check internal/web/web/app.js
+          node --check internal/web/web/gamepad-core.js
+          node --test internal/web/web/gamepad-core.test.cjs
+      - name: Installer shell syntax
+        run: bash -n Install-TouchBridge-Linux.sh scripts/*.sh
+      - name: Verify web DOM bindings
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          html = Path('internal/web/web/index.html').read_text()
+          js = Path('internal/web/web/app.js').read_text()
+          ids = set(re.findall(r'\bid="([A-Za-z0-9_-]+)"', html))
+          refs = set(re.findall(r"\$\('([A-Za-z0-9_-]+)'\)", js))
+          missing = sorted(refs - ids)
+          if missing:
+              raise SystemExit(f'JavaScript references missing HTML IDs: {missing}')
+          print(f'Validated {len(refs)} direct DOM ID references.')
+          PY
+      - name: Verify Android bundles the current controller UI
+        run: |
+          for asset in index.html app.css app.js gamepad-core.js manifest.webmanifest icon.svg sw.js; do
+            cmp "internal/web/web/$asset" "android-client/app/src/main/assets/controller/$asset"
+          done
+      - name: Build Linux amd64
+        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /tmp/touchbridge-linux-amd64 ./cmd/touchbridge
+      - name: Build Linux arm64
+        run: CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o /tmp/touchbridge-linux-arm64 ./cmd/touchbridge
+      - name: Build Windows amd64
+        run: CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o /tmp/touchbridge-windows-amd64.exe ./cmd/touchbridge
+
+  android-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+      - name: Install Android 35 SDK packages
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.9'
+          cache-provider: basic
+      - name: Build debug APK
+        run: gradle -p android-client assembleDebug --no-daemon
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: touchbridge-android-debug-apk
+          path: android-client/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+  vulnerability-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27.x'
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.10.0
+      - name: Scan reachable Go vulnerabilities
+        run: govulncheck ./...

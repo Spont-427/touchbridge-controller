@@ -1,0 +1,2 @@
+# Grant the active local desktop user access to the TouchBridge virtual input device.
+KERNEL=="uinput", SUBSYSTEM=="misc", GROUP="touchbridge", MODE="0660", TAG+="uaccess", OPTIONS+="static_node=uinput"

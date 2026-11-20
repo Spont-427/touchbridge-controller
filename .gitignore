@@ -1,0 +1,18 @@
+# Local build and release outputs
+/dist/
+/android-client/build/
+/android-client/app/build/
+/android-client/.gradle/
+/android-client/.kotlin/
+/android-client/local.properties
+
+# Android Studio / IntelliJ
+/android-client/.idea/
+*.iml
+*.hprof
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*~

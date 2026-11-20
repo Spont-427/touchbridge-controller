@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=TouchBridge Server
+Comment=Start the local TouchBridge PC controller server
+Exec=/usr/local/bin/touchbridge
+Terminal=true
+Categories=Utility;Network;

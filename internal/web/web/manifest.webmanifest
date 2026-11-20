@@ -1,0 +1,11 @@
+{
+  "name": "TouchBridge Controller",
+  "short_name": "TouchBridge",
+  "description": "A local-network touchpad and keyboard controller.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c1017",
+  "theme_color": "#10141d",
+  "orientation": "any",
+  "icons": [{"src":"/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}

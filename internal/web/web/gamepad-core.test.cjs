@@ -22,15 +22,11 @@ test('stick math rejects non-finite coordinates safely', () => {
   assert.deepEqual(core.normalizeStick(Number.NaN, Number.POSITIVE_INFINITY), { x: 0, y: 0, magnitude: 0 });
 });
 
-test('adaptive origin uses the tap point inside the activation region', () => {
-  const origin = core.adaptiveOrigin(70, 70, 200, 200, 0.5);
-  assert.deepEqual(origin, { x: 70, y: 70 });
-});
-
-test('adaptive origin clamps distant edge taps to the activation boundary', () => {
-  const origin = core.adaptiveOrigin(200, 100, 200, 200, 0.4);
-  assert.equal(origin.x, 140);
-  assert.equal(origin.y, 100);
+test('stick-click buttons are valid layout controls', () => {
+  const layout = core.createProfile('generic');
+  layout.push({ id: 'left-stick-click', kind: 'button', button: 'LS', label: 'L3 click', x: 20, y: 20, size: 46 });
+  layout.push({ id: 'right-stick-click', kind: 'button', button: 'RS', label: 'R3 click', x: 80, y: 20, size: 46 });
+  assert.equal(core.validateLayout(layout), true);
 });
 
 test('built-in profile layouts are valid and contain two sticks', () => {

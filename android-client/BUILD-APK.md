@@ -6,6 +6,8 @@
 - JDK 17 (Android Studio's embedded JBR 17 is suitable).
 - Android Gradle Plugin 9.5.2 and the Gradle 9.6.0 wrapper.
 
+The Android manifest includes the TouchBridge launcher icon, adaptive icon resources and legacy density-specific icons.
+
 ## Debug APK (testing)
 
 From the repository root:
@@ -14,13 +16,13 @@ From the repository root:
 ./scripts/build-android-debug.sh
 ```
 
-The script runs `assembleDebug`, checks that the Gradle `versionName` matches `VERSION`, and copies the APK to `dist/TouchBridge-0.7.0-debug.apk`.
+The script runs `assembleDebug`, checks that the Gradle `versionName` matches `VERSION`, and copies the APK to `dist/TouchBridge-0.8.0-debug.apk`.
 
 A debug APK is signed with the Android debug key and may expose WebView debugging. It is for testers and troubleshooting, not the recommended stable download.
 
 ## Stable signed APK
 
-**Use the same private release keystore that signed v0.6.0. Do not generate a new key for this update.** Android uses the signing certificate to decide whether an APK can update an installed app. A different key will prevent in-place updates.
+**Use the same private release keystore that signed v0.7.0. Do not generate a new key for this update.** Android uses the signing certificate to decide whether an APK can update an installed app. A different key prevents in-place updates and also prevents the in-app updater from accepting the APK.
 
 Keep the keystore outside the repository, protect it with a strong password, and maintain encrypted offline backups. Never commit the keystore or passwords to GitHub.
 
@@ -61,9 +63,9 @@ Make sure `ANDROID_SDK_ROOT` points to your Android SDK (usually `"$HOME/Android
 ./scripts/build-android-release.sh
 ```
 
-The script runs `assembleRelease`, aligns the unsigned APK, signs it with `apksigner`, verifies the signature and writes `dist/TouchBridge-0.7.0.apk` with a SHA-256 checksum.
+The script runs `assembleRelease`, aligns the unsigned APK, signs it with `apksigner`, verifies the signature and writes `dist/TouchBridge-0.8.0.apk` with a SHA-256 checksum.
 
-Upload `TouchBridge-0.7.0.apk` manually to the GitHub release. The release workflow automatically attaches `TouchBridge-0.7.0-debug.apk` and the Windows/Linux packages.
+Upload `TouchBridge-0.8.0.apk` manually to the GitHub release. The release workflow automatically attaches `TouchBridge-0.8.0-debug.apk` and the Windows/Linux packages.
 
 ## Android Studio
 
@@ -73,9 +75,9 @@ Upload `TouchBridge-0.7.0.apk` manually to the GitHub release. The release workf
 4. Allow Gradle Sync to finish.
 5. For a test build, choose **Build → Build Bundle(s) / APK(s) → Build APK(s)**. For the stable build, use the signed release script above with the existing release keystore.
 
-## Updating from v0.6.0 stable
+## Updating from v0.7.0 stable
 
-The v0.6.0 stable APK was signed with the project's private release key. Build v0.7.0 using that exact same keystore and alias; users can then update in place without uninstalling or losing app data. Do not use a debug APK as the stable release.
+The v0.7.0 stable APK was signed with the project's private release key. Build v0.8.0 using that exact same keystore and alias; users can update in place without uninstalling or losing app data. The in-app updater checks that the new APK has the same signing certificate before opening the Android installer. Do not use a debug APK as the stable release.
 
 ## App architecture
 

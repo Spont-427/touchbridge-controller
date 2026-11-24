@@ -9,5 +9,7 @@ TouchBridge is a LAN input-control application that injects controller, keyboard
 - A connected client can inject keyboard and mouse events into the active desktop session. Keep the server stopped when not in use.
 - Linux input access is restricted to `/dev/uinput`; the server should run as the logged-in user, not as root.
 - Input injection behaviour under UAC/elevated Windows applications, locked desktops, Wayland compositors, multi-seat systems and sandboxed desktops varies.
+- The Android in-app updater only looks for the latest non-prerelease GitHub release from the official repository. It accepts only the expected stable/debug APK asset name, limits the download size, and verifies package name, version, increasing version code and signing-certificate fingerprint before opening Android's package installer. The user must confirm installation.
+- Stable APK updates must use the same private release signing key. Keep that keystore and its backups private; never put the signing key or passwords in the repository.
 
 Report suspected vulnerabilities privately to the project maintainers before public disclosure.

@@ -1,10 +1,16 @@
 package io.github.touchbridge.mobile
 
 import android.app.Activity
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.ApplicationInfo
+import android.content.pm.PackageInfo
+import android.content.pm.PackageInstaller
+import android.content.pm.PackageManager
+import android.content.pm.Signature
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -13,7 +19,9 @@ import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.provider.Settings
 import android.util.Base64
+import android.util.Log
 import android.view.WindowManager
 import android.webkit.JavascriptInterface
 import android.webkit.MimeTypeMap
@@ -29,15 +37,20 @@ import android.net.Uri
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
+import java.io.File
+import java.io.IOException
 import java.net.DatagramPacket
 import java.net.DatagramSocket
+import java.net.HttpURLConnection
 import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.net.SocketTimeoutException
+import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.security.KeyStore
+import java.security.MessageDigest
 import java.util.Collections
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -62,6 +75,9 @@ class MainActivity : Activity() {
     private var pendingFileChooser: ValueCallback<Array<Uri>>? = null
     private var pendingExportContent: String? = null
     private var pendingExportFilename = "touchbridge-layout.json"
+    @Volatile private var availableUpdate: AvailableUpdate? = null
+    private val updateCheckRunning = AtomicBoolean(false)
+    private val updateDownloading = AtomicBoolean(false)
     private val preferences by lazy {
         getSharedPreferences("touchbridge.devices.v1", Context.MODE_PRIVATE)
     }
@@ -76,6 +92,10 @@ class MainActivity : Activity() {
         private const val DISCOVERY_PROBE = "TOUCHBRIDGE_DISCOVER_V1"
         private const val REQUEST_IMPORT_LAYOUT = 4101
         private const val REQUEST_EXPORT_LAYOUT = 4102
+        private const val REQUEST_INSTALL_PERMISSION = 4103
+        private const val UPDATE_API_URL = "https://api.github.com/repos/Spont-427/touchbridge-controller/releases/latest"
+        private const val UPDATE_INSTALL_ACTION = "io.github.touchbridge.mobile.UPDATE_INSTALL_STATUS"
+        private const val UPDATE_MAX_BYTES = 200L * 1024 * 1024
         private val THEME_LIGHT_BG = 0xFFF4F4F1.toInt()
     }
 
@@ -120,7 +140,17 @@ class MainActivity : Activity() {
                 pendingFileChooser = filePathCallback
                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                     addCategory(Intent.CATEGORY_OPENABLE)
-                    type = "application/json"
+                    // Some older file providers do not classify .json files as
+                    // application/json, which greys them out. A wildcard with
+                    // preferred MIME types keeps them selectable; the web UI
+                    // still validates the chosen file before importing it.
+                    type = "*/*"
+                    putExtra(Intent.EXTRA_MIME_TYPES, arrayOf(
+                        "application/json",
+                        "text/json",
+                        "text/plain",
+                        "application/octet-stream"
+                    ))
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
                 return try {
@@ -311,6 +341,74 @@ class MainActivity : Activity() {
         fun getAppVersion(): String = appVersion()
 
         @JavascriptInterface
+        fun checkForUpdates(): Boolean {
+            if (updateDownloading.get()) {
+                postUpdateStatus("error", "An update download is already in progress.", availableUpdate?.version)
+                return false
+            }
+            if (!updateCheckRunning.compareAndSet(false, true)) return false
+            mainHandler.post { postUpdateStatus("checking", "Checking GitHub Releases…") }
+            worker.execute {
+                try {
+                    val latest = fetchLatestUpdate()
+                    if (isNewerVersion(latest.version, appVersion())) {
+                        availableUpdate = latest
+                        postUpdateStatus("available", "Version ${latest.version} is available.", latest.version)
+                    } else {
+                        availableUpdate = null
+                        postUpdateStatus("current", "Version ${appVersion()} is the latest stable release.", appVersion())
+                    }
+                } catch (error: Exception) {
+                    Log.w("TouchBridgeUpdate", "Update check failed", error)
+                    availableUpdate = null
+                    postUpdateStatus("error", updateErrorMessage(error), null)
+                } finally {
+                    updateCheckRunning.set(false)
+                }
+            }
+            return true
+        }
+
+        @JavascriptInterface
+        fun installUpdate(): Boolean {
+            val update = availableUpdate ?: run {
+                postUpdateStatus("error", "Check for updates again before installing.", null)
+                return false
+            }
+            if (updateDownloading.get()) return true
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !packageManager.canRequestPackageInstalls()) {
+                postUpdateStatus("permission", "Allow TouchBridge to install unknown apps, then tap Download and install again.", update.version)
+                mainHandler.post {
+                    try {
+                        startActivityForResult(
+                            Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")),
+                            REQUEST_INSTALL_PERMISSION
+                        )
+                    } catch (error: Exception) {
+                        postUpdateStatus("error", "The install-permission screen could not be opened.", update.version)
+                    }
+                }
+                return true
+            }
+            if (!updateDownloading.compareAndSet(false, true)) return true
+            postUpdateStatus("downloading", "Starting download…", update.version, 0)
+            worker.execute {
+                try {
+                    val apk = downloadUpdate(update)
+                    verifyDownloadedUpdate(apk, update)
+                    postUpdateStatus("installing", "Opening the Android installer…", update.version)
+                    installDownloadedApk(apk)
+                } catch (error: Exception) {
+                    Log.w("TouchBridgeUpdate", "Update install failed", error)
+                    postUpdateStatus("error", updateErrorMessage(error), update.version)
+                } finally {
+                    updateDownloading.set(false)
+                }
+            }
+            return true
+        }
+
+        @JavascriptInterface
         fun openRepository() {
             mainHandler.post {
                 try {
@@ -384,6 +482,246 @@ class MainActivity : Activity() {
         packageManager.getPackageInfo(packageName, 0).versionName ?: "0.0.0"
     } catch (_: Exception) {
         "0.0.0"
+    }
+
+    private fun appVersionCode(): Long = try {
+        val info = packageManager.getPackageInfo(packageName, 0)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) info.longVersionCode else {
+            @Suppress("DEPRECATION")
+            info.versionCode.toLong()
+        }
+    } catch (_: Exception) {
+        0L
+    }
+
+    private fun packageVersionCode(info: PackageInfo): Long {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) info.longVersionCode else {
+            @Suppress("DEPRECATION")
+            info.versionCode.toLong()
+        }
+    }
+
+    private fun fetchLatestUpdate(): AvailableUpdate {
+        val release = readGitHubRelease(UPDATE_API_URL)
+        if (release.optBoolean("draft") || release.optBoolean("prerelease")) {
+            throw IOException("The latest release is not a stable release.")
+        }
+        val version = stableVersion(release.optString("tag_name"))
+            ?: throw IOException("The latest release has no stable version tag.")
+        val debugBuild = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        val expectedName = if (debugBuild) "TouchBridge-$version-debug.apk" else "TouchBridge-$version.apk"
+        val assets = release.optJSONArray("assets") ?: JSONArray()
+        var downloadUrl = ""
+        for (index in 0 until assets.length()) {
+            val asset = assets.optJSONObject(index) ?: continue
+            if (asset.optString("name") != expectedName) continue
+            downloadUrl = asset.optString("browser_download_url")
+            break
+        }
+        if (downloadUrl.isBlank()) {
+            throw IOException("The latest stable release does not include a compatible APK yet.")
+        }
+        if (!isTrustedReleaseAssetUrl(downloadUrl, expectedName)) {
+            throw IOException("The release APK download link is not trusted.")
+        }
+        return AvailableUpdate(version, downloadUrl, expectedName)
+    }
+
+    private fun readGitHubRelease(url: String): JSONObject {
+        val connection = URL(url).openConnection() as HttpURLConnection
+        try {
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 10_000
+            connection.readTimeout = 15_000
+            connection.instanceFollowRedirects = true
+            connection.setRequestProperty("Accept", "application/vnd.github+json")
+            connection.setRequestProperty("User-Agent", "TouchBridgeAndroid/${appVersion()}")
+            val code = connection.responseCode
+            if (code != HttpURLConnection.HTTP_OK) {
+                val detail = connection.errorStream?.bufferedReader(StandardCharsets.UTF_8)?.use { it.readText().take(500) }
+                Log.w("TouchBridgeUpdate", "GitHub API HTTP $code: ${detail.orEmpty()}")
+                throw IOException(if (code == 403) "GitHub rate limit reached. Try again later." else "GitHub returned HTTP $code.")
+            }
+            if (connection.url.protocol != "https") throw IOException("The update check did not use HTTPS.")
+            val body = connection.inputStream.bufferedReader(StandardCharsets.UTF_8).use { it.readText() }
+            if (body.length > 2_000_000) throw IOException("The release information was too large.")
+            return JSONObject(body)
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun stableVersion(tag: String): String? {
+        val match = Regex("^v?(\\d+)\\.(\\d+)\\.(\\d+)$").matchEntire(tag.trim()) ?: return null
+        return "${match.groupValues[1]}.${match.groupValues[2]}.${match.groupValues[3]}"
+    }
+
+    private fun isNewerVersion(candidate: String, current: String): Boolean {
+        val next = versionParts(candidate)
+        val installed = versionParts(current)
+        for (index in 0 until maxOf(next.size, installed.size)) {
+            val left = next.getOrElse(index) { 0 }
+            val right = installed.getOrElse(index) { 0 }
+            if (left != right) return left > right
+        }
+        return false
+    }
+
+    private fun versionParts(version: String): List<Int> {
+        return version.trim().removePrefix("v").split('.').map { part ->
+            part.takeWhile(Char::isDigit).toIntOrNull() ?: 0
+        }
+    }
+
+    private fun isTrustedReleaseAssetUrl(url: String, expectedName: String): Boolean {
+        return try {
+            val uri = Uri.parse(url)
+            uri.scheme == "https" &&
+                uri.host == "github.com" &&
+                uri.path?.startsWith("/Spont-427/touchbridge-controller/releases/download/") == true &&
+                uri.lastPathSegment == expectedName
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun downloadUpdate(update: AvailableUpdate): File {
+        val directory = File(cacheDir, "updates")
+        if (!directory.exists() && !directory.mkdirs()) throw IOException("The update cache could not be created.")
+        directory.listFiles()?.forEach { it.delete() }
+        val outputFile = File(directory, update.assetName)
+        val connection = URL(update.downloadUrl).openConnection() as HttpURLConnection
+        try {
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 15_000
+            connection.readTimeout = 30_000
+            connection.instanceFollowRedirects = true
+            connection.setRequestProperty("Accept", "application/octet-stream")
+            connection.setRequestProperty("User-Agent", "TouchBridgeAndroid/${appVersion()}")
+            val code = connection.responseCode
+            if (code != HttpURLConnection.HTTP_OK) throw IOException("The update download returned HTTP $code.")
+            if (connection.url.protocol != "https") throw IOException("The update download did not use HTTPS.")
+            val total = connection.contentLength.toLong()
+            if (total > UPDATE_MAX_BYTES) throw IOException("The update file is too large.")
+            var downloaded = 0L
+            var lastProgress = -5
+            connection.inputStream.use { input ->
+                outputFile.outputStream().use { output ->
+                    val buffer = ByteArray(64 * 1024)
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        downloaded += count
+                        if (downloaded > UPDATE_MAX_BYTES) throw IOException("The update file is too large.")
+                        output.write(buffer, 0, count)
+                        if (total > 0) {
+                            val progress = ((downloaded * 100) / total).toInt()
+                            if (progress >= lastProgress + 5) {
+                                lastProgress = progress
+                                postUpdateStatus("downloading", "Downloading update…", update.version, progress)
+                            }
+                        }
+                    }
+                }
+            }
+            if (downloaded == 0L) throw IOException("The update download was empty.")
+            postUpdateStatus("downloading", "Download complete. Verifying…", update.version, 100)
+            return outputFile
+        } catch (error: Exception) {
+            outputFile.delete()
+            throw error
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun verifyDownloadedUpdate(file: File, update: AvailableUpdate) {
+        val flag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            PackageManager.GET_SIGNING_CERTIFICATES
+        } else {
+            @Suppress("DEPRECATION")
+            PackageManager.GET_SIGNATURES
+        }
+        val archive = packageManager.getPackageArchiveInfo(file.absolutePath, flag)
+            ?: throw IOException("The downloaded file is not a valid APK.")
+        if (archive.packageName != packageName) throw IOException("The update is for a different app.")
+        val archivedVersion = archive.versionName?.removePrefix("v").orEmpty()
+        if (archivedVersion.isNotBlank() && archivedVersion != update.version) {
+            throw IOException("The downloaded APK version does not match the release.")
+        }
+        if (packageVersionCode(archive) <= appVersionCode()) {
+            throw IOException("The downloaded update is not newer than the installed app.")
+        }
+        val current = packageManager.getPackageInfo(packageName, flag)
+        if (signatureFingerprints(archive) != signatureFingerprints(current)) {
+            throw IOException("The update is not signed by the same developer key. Install it manually from the release page.")
+        }
+    }
+
+    private fun signatureFingerprints(info: PackageInfo): Set<String> {
+        val signatures: Array<Signature> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            info.signingInfo?.apkContentsSigners ?: info.signingInfo?.signingCertificateHistory ?: emptyArray()
+        } else {
+            @Suppress("DEPRECATION")
+            info.signatures ?: emptyArray()
+        }
+        return signatures.map { signature ->
+            MessageDigest.getInstance("SHA-256").digest(signature.toByteArray())
+                .joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
+        }.toSet()
+    }
+
+    private fun installDownloadedApk(file: File) {
+        val installer = packageManager.packageInstaller
+        val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
+        params.setSize(file.length())
+        val sessionId = installer.createSession(params)
+        try {
+            installer.openSession(sessionId).use { session ->
+                file.inputStream().use { input ->
+                    session.openWrite("base.apk", 0, file.length()).use { output ->
+                        input.copyTo(output)
+                        session.fsync(output)
+                    }
+                }
+                val callback = Intent(this, UpdateInstallReceiver::class.java).setAction(UPDATE_INSTALL_ACTION)
+                // PackageInstaller fills the result extras into this intent, so
+                // the PendingIntent must remain mutable on Android 12+.
+                val pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT or
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0
+                val pending = PendingIntent.getBroadcast(this, sessionId, callback, pendingFlags)
+                session.commit(pending.intentSender)
+            }
+        } catch (error: Exception) {
+            installer.abandonSession(sessionId)
+            throw error
+        }
+    }
+
+    private fun postUpdateStatus(status: String, message: String, version: String? = availableUpdate?.version, progress: Int? = null) {
+        val payload = JSONObject().apply {
+            put("status", status)
+            put("message", message)
+            if (!version.isNullOrBlank()) put("version", version)
+            if (progress != null) put("progress", progress)
+        }
+        val script = "window.TouchBridge && window.TouchBridge.onUpdateStatus($payload);"
+        mainHandler.post { webView?.evaluateJavascript(script, null) }
+    }
+
+    private fun updateErrorMessage(error: Exception): String {
+        val message = error.message.orEmpty()
+        return when {
+            message.contains("signed by the same", ignoreCase = true) -> message
+            message.contains("rate limit", ignoreCase = true) -> message
+            message.contains("does not include", ignoreCase = true) -> message
+            message.contains("not newer", ignoreCase = true) -> message
+            message.contains("different app", ignoreCase = true) -> message
+            message.contains("version does not match", ignoreCase = true) -> message
+            message.contains("too large", ignoreCase = true) -> message
+            message.contains("not a valid APK", ignoreCase = true) -> message
+            else -> "Could not install the update. Check your connection and try again."
+        }
     }
 
     private fun isAppAssetUri(uri: android.net.Uri): Boolean {
@@ -577,6 +915,15 @@ class MainActivity : Activity() {
 
     @Deprecated("Deprecated in Android API; retained for compatibility with the minSdk 23 file picker flow")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == REQUEST_INSTALL_PERMISSION) {
+            val granted = Build.VERSION.SDK_INT < Build.VERSION_CODES.O || packageManager.canRequestPackageInstalls()
+            postUpdateStatus(
+                if (granted) "available" else "permission",
+                if (granted) "Install permission granted. Tap Download and install to continue." else "TouchBridge still needs permission to install unknown apps.",
+                availableUpdate?.version
+            )
+            return
+        }
         if (requestCode == REQUEST_IMPORT_LAYOUT) {
             val callback = pendingFileChooser
             pendingFileChooser = null
@@ -611,9 +958,50 @@ class MainActivity : Activity() {
         pendingFileChooser = null
         pendingExportContent = null
         scanRunning.set(false)
+        updateCheckRunning.set(false)
+        updateDownloading.set(false)
         worker.shutdownNow()
         webView?.apply { stopLoading(); removeJavascriptInterface("TouchBridgeAndroid"); destroy() }
         webView = null
         super.onDestroy()
+    }
+}
+
+private data class AvailableUpdate(
+    val version: String,
+    val downloadUrl: String,
+    val assetName: String
+)
+
+class UpdateInstallReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        when (intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)) {
+            PackageInstaller.STATUS_PENDING_USER_ACTION -> {
+                val confirmation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
+                } else {
+                    @Suppress("DEPRECATION")
+                    intent.getParcelableExtra(Intent.EXTRA_INTENT)
+                }
+                if (confirmation == null) {
+                    Toast.makeText(context, "The Android installer could not be opened.", Toast.LENGTH_LONG).show()
+                    return
+                }
+                confirmation.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                try {
+                    context.startActivity(confirmation)
+                } catch (_: Exception) {
+                    Toast.makeText(context, "The Android installer could not be opened.", Toast.LENGTH_LONG).show()
+                }
+            }
+            PackageInstaller.STATUS_SUCCESS ->
+                Toast.makeText(context, "TouchBridge updated.", Toast.LENGTH_SHORT).show()
+            else -> {
+                val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
+                    ?.takeIf { it.isNotBlank() }
+                    ?: "The Android installer did not complete the update."
+                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            }
+        }
     }
 }

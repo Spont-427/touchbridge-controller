@@ -40,8 +40,6 @@
   const editorGridButton = $('editorGridButton');
   const editorSnapButton = $('editorSnapButton');
   const centerModeSelect = $('stickCenterMode');
-  const centerRange = $('centerRange');
-  const centerRangeValue = $('centerRangeValue');
   const stickDeadzone = $('stickDeadzone');
   const stickDeadzoneValue = $('stickDeadzoneValue');
   const stickCurve = $('stickCurve');
@@ -64,6 +62,10 @@
   const aboutServerVersion = $('aboutServerVersion');
   const aboutConnectionState = $('aboutConnectionState');
   const aboutGamepadState = $('aboutGamepadState');
+  const checkUpdatesButton = $('checkUpdatesButton');
+  const installUpdateButton = $('installUpdateButton');
+  const updateStatus = $('updateStatus');
+  let availableUpdateVersion = '';
   const profileGrid = $('profileGrid');
   const libraryCount = $('libraryCount');
   const layoutsScreen = $('layoutsScreen');
@@ -167,7 +169,7 @@
   const LAYOUT_STATUS_DEFAULT = 'Preset layouts can be duplicated but not deleted.';
   const BUTTON_LABELS = Object.freeze({
     DPAD_UP: 'D-pad up', DPAD_DOWN: 'D-pad down', DPAD_LEFT: 'D-pad left', DPAD_RIGHT: 'D-pad right',
-    BACK: 'Back', START: 'Start', GUIDE: 'Guide', LS: 'Stick click L', RS: 'Stick click R'
+    BACK: 'Back', START: 'Start', GUIDE: 'Guide', LS: 'L3 click', RS: 'R3 click'
   });
   const ADD_CLUSTERS = Object.freeze({
     dpad: [
@@ -341,6 +343,82 @@
     if (aboutGamepadState) aboutGamepadState.textContent = gamepadAvailable ? 'Available' : (authenticated ? 'Unavailable' : 'Unknown');
   }
 
+  function setUpdateStatus(message, state = '') {
+    if (!updateStatus) return;
+    updateStatus.textContent = message;
+    updateStatus.classList.toggle('available', state === 'available');
+    updateStatus.classList.toggle('error', state === 'error');
+  }
+
+  function handleUpdateStatus(update) {
+    if (!update || typeof update !== 'object') return;
+    const status = String(update.status || '');
+    const version = String(update.version || '');
+    const message = String(update.message || '');
+    if (status === 'checking') {
+      if (checkUpdatesButton) checkUpdatesButton.disabled = true;
+      if (installUpdateButton) installUpdateButton.hidden = true;
+      setUpdateStatus(message || 'Checking GitHub Releases…');
+      return;
+    }
+    if (status === 'available') {
+      availableUpdateVersion = version;
+      if (checkUpdatesButton) checkUpdatesButton.disabled = false;
+      if (installUpdateButton) {
+        installUpdateButton.hidden = false;
+        installUpdateButton.disabled = false;
+        installUpdateButton.textContent = 'Download and install';
+      }
+      setUpdateStatus(message || `Version ${version || 'update'} is available.`, 'available');
+      return;
+    }
+    if (status === 'current') {
+      availableUpdateVersion = '';
+      if (checkUpdatesButton) checkUpdatesButton.disabled = false;
+      if (installUpdateButton) installUpdateButton.hidden = true;
+      setUpdateStatus(message || 'TouchBridge is up to date.');
+      return;
+    }
+    if (status === 'downloading') {
+      if (checkUpdatesButton) checkUpdatesButton.disabled = true;
+      if (installUpdateButton) {
+        installUpdateButton.hidden = false;
+        installUpdateButton.disabled = true;
+        installUpdateButton.textContent = 'Downloading…';
+      }
+      const progress = Number(update.progress);
+      setUpdateStatus(Number.isFinite(progress) ? `Downloading version ${version || availableUpdateVersion}… ${Math.max(0, Math.min(100, Math.round(progress)))}%` : (message || 'Downloading update…'));
+      return;
+    }
+    if (status === 'permission') {
+      if (checkUpdatesButton) checkUpdatesButton.disabled = false;
+      if (installUpdateButton) {
+        installUpdateButton.hidden = !availableUpdateVersion;
+        installUpdateButton.disabled = false;
+        installUpdateButton.textContent = 'Download and install';
+      }
+      setUpdateStatus(message || 'Allow TouchBridge to install unknown apps, then try again.', 'error');
+      return;
+    }
+    if (status === 'installing') {
+      if (checkUpdatesButton) checkUpdatesButton.disabled = true;
+      if (installUpdateButton) {
+        installUpdateButton.hidden = false;
+        installUpdateButton.disabled = true;
+        installUpdateButton.textContent = 'Opening installer…';
+      }
+      setUpdateStatus(message || 'Opening the Android installer…');
+      return;
+    }
+    if (checkUpdatesButton) checkUpdatesButton.disabled = false;
+    if (installUpdateButton) {
+      installUpdateButton.hidden = !availableUpdateVersion;
+      installUpdateButton.disabled = false;
+      installUpdateButton.textContent = 'Download and install';
+    }
+    setUpdateStatus(message || 'The update check could not be completed.', 'error');
+  }
+
   function mountGamepadStage(mountId) {
     const mount = $(mountId);
     if (mount && gamepadStage.parentElement !== mount) mount.append(gamepadStage);
@@ -462,6 +540,7 @@
 
   window.TouchBridge = {
     onServersFound,
+    onUpdateStatus: handleUpdateStatus,
     androidBack() {
       if (currentScreen === 'editor') {
         if (editorAdvancedPanel && !editorAdvancedPanel.hidden) { editorAdvancedPanel.hidden = true; return true; }
@@ -1303,12 +1382,26 @@
       if (input) { input.focus(); input.select(); }
     }
   }
+  function repairLayoutLabels(controls) {
+    if (!Array.isArray(controls)) return controls;
+    const legacyLabels = { 'Stick click L': 'L3 click', 'Stick click R': 'R3 click' };
+    for (const control of controls) {
+      if (control && typeof control.label === 'string' && legacyLabels[control.label]) {
+        control.label = legacyLabels[control.label];
+      }
+    }
+    return controls;
+  }
+
   function loadLayout(profileId) {
     const stored = safeStorageGet(`touchbridge.layout.${profileId}`);
     if (stored) {
       try {
-        const parsed = JSON.parse(stored);
-        if (core && core.validateLayout(parsed)) return parsed;
+        const parsed = repairLayoutLabels(JSON.parse(stored));
+        if (core && core.validateLayout(parsed)) {
+          safeStorageSet(`touchbridge.layout.${profileId}`, JSON.stringify(parsed));
+          return parsed;
+        }
       } catch { /* Fall back to the built-in profile. */ }
     }
     return core ? core.createProfile(profileId) : [];
@@ -1468,7 +1561,7 @@
         tag.className = 'stick-tag';
         tag.textContent = control.label || (control.side === 'left' ? 'LEFT STICK' : 'RIGHT STICK');
         // Keep the origin marker above the knob: otherwise the knob hides the
-        // adaptive centre exactly when the finger first touches the stick.
+        // adaptive centre when the stick shifts under the first touch.
         face.append(knob, center, ring, tag);
         wrapper.appendChild(face);
         wrapper._stickParts = { center, ring, knob, face };
@@ -1612,6 +1705,7 @@
         node.style.left = '50%';
         node.style.top = '50%';
       });
+      gamepadControls.querySelectorAll('.stick-face').forEach(node => { node.style.transform = ''; });
       gamepadControls.querySelectorAll('.active-stick').forEach(node => node.classList.remove('active-stick'));
       gamepadControls.querySelectorAll('.pressed').forEach(node => node.classList.remove('pressed'));
     }
@@ -1657,8 +1751,11 @@
       const height = rect.height;
       const localX = event.clientX - rect.left;
       const localY = event.clientY - rect.top;
+      // Adaptive mode makes the touch-down point the centre of the stick, so
+      // the whole stick shifts under the thumb. The centre then stays put for
+      // the rest of the gesture, exactly like the fixed mode but elsewhere.
       const origin = centerModeSelect.value === 'adaptive'
-        ? core.adaptiveOrigin(localX, localY, width, height, Number(centerRange.value) / 100)
+        ? { x: core.clamp(localX, 0, width), y: core.clamp(localY, 0, height) }
         : { x: width / 2, y: height / 2 };
       stickGestures.set(control.side, {
         pointerId: event.pointerId,
@@ -1670,12 +1767,14 @@
         height,
         maxThrow: Math.min(width, height) * 0.39,
         center: wrapper._stickParts.center,
-        knob: wrapper._stickParts.knob
+        ring: wrapper._stickParts.ring,
+        knob: wrapper._stickParts.knob,
+        face: wrapper._stickParts.face
       });
       wrapper.classList.add('active-stick');
-      for (const part of [wrapper._stickParts.center, wrapper._stickParts.ring]) {
-        part.style.left = `${origin.x}px`;
-        part.style.top = `${origin.y}px`;
+      for (const part of [wrapper._stickParts.center, wrapper._stickParts.ring, wrapper._stickParts.knob]) {
+        part.style.left = '50%';
+        part.style.top = '50%';
       }
       updateStickGesture(control.side, event.clientX, event.clientY);
     } else {
@@ -1711,15 +1810,19 @@
     let dy = localY - gesture.originY;
     const distance = Math.hypot(dx, dy);
     if (distance > gesture.maxThrow) {
-      dx = dx / distance * gesture.maxThrow;
-      dy = dy / distance * gesture.maxThrow;
+      const scale = gesture.maxThrow / distance;
+      dx *= scale;
+      dy *= scale;
     }
+    // Move the whole stick face to the centre chosen at touch-down so the knob,
+    // centre dot and activation ring stay together as one control.
+    gesture.face.style.transform = `translate(${gesture.originX - gesture.width / 2}px, ${gesture.originY - gesture.height / 2}px)`;
     const deadzone = Number(stickDeadzone.value) / 100;
     const vector = core.normalizeStick(dx / gesture.maxThrow, -dy / gesture.maxThrow, deadzone, stickCurve.value);
     gamepadState[`${side}_x`] = vector.x;
     gamepadState[`${side}_y`] = vector.y;
-    gesture.knob.style.left = `${gesture.originX + dx}px`;
-    gesture.knob.style.top = `${gesture.originY + dy}px`;
+    gesture.knob.style.left = `${gesture.width / 2 + dx}px`;
+    gesture.knob.style.top = `${gesture.height / 2 + dy}px`;
     queueGamepadState();
   }
   function onGamepadPointerMove(event, control, wrapper) {
@@ -1789,8 +1892,9 @@
       gesture.center.style.top = '50%';
       gesture.knob.style.left = '50%';
       gesture.knob.style.top = '50%';
-      const ring = gesture.wrapper._stickParts?.ring;
-      if (ring) { ring.style.left = '50%'; ring.style.top = '50%'; }
+      gesture.face.style.transform = '';
+      gesture.ring.style.left = '50%';
+      gesture.ring.style.top = '50%';
       gesture.wrapper.classList.remove('active-stick');
       queueGamepadState();
     } else if (activeGamepadControls.has(event.pointerId)) {
@@ -1912,7 +2016,7 @@
           ? [{ button: value.slice(6), label: value === 'pedal:RT' ? 'ACCEL' : 'BRAKE', pedal: true, dx: 0, dy: 0, size: 88 }]
           : (() => {
             const action = value.startsWith('button:') ? value.slice(7) : value;
-            return [{ button: action, label: BUTTON_LABELS[action] || action, dx: 0, dy: 0, size: 46 }];
+            return [{ button: action, label: (BUTTON_LABELS[action] || action).slice(0, 12), dx: 0, dy: 0, size: 46 }];
           })();
     if (!Array.isArray(specs) || !specs.length) return;
     const remaining = 40 - layout.length;
@@ -1994,6 +2098,15 @@
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     if (editorStatus) editorStatus.textContent = 'Layout exported as a JSON file.';
   });
+  function readTextFile(file) {
+    if (typeof file.text === 'function') return file.text();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(reader.error || new Error('The file could not be read.'));
+      reader.readAsText(file);
+    });
+  }
   importLayoutButton.addEventListener('click', () => importLayoutFile.click());
   importLayoutFile.addEventListener('change', async () => {
     const file = importLayoutFile.files && importLayoutFile.files[0];
@@ -2004,8 +2117,8 @@
       return;
     }
     try {
-      const parsed = JSON.parse(await file.text());
-      const imported = Array.isArray(parsed) ? parsed : parsed && parsed.controls;
+      const parsed = JSON.parse(await readTextFile(file));
+      const imported = repairLayoutLabels(Array.isArray(parsed) ? parsed : parsed && parsed.controls);
       if (!core.validateLayout(imported)) throw new Error('Layout structure is invalid.');
       if (stickGestures.size || activeGamepadControls.size) clearGamepadState(true, false);
       layout = JSON.parse(JSON.stringify(imported));
@@ -2018,10 +2131,6 @@
     }
   });
   controlSize.addEventListener('change', updateEditorFields);
-  centerRange.addEventListener('input', () => {
-    centerRangeValue.value = `${centerRange.value}%`;
-    safeStorageSet('touchbridge.stick.centerRange', centerRange.value);
-  });
   stickDeadzone.addEventListener('input', () => {
     stickDeadzoneValue.value = `${stickDeadzone.value}%`;
     safeStorageSet('touchbridge.stick.deadzone', stickDeadzone.value);
@@ -2035,9 +2144,6 @@
   updateEditorToggles();
   const savedCenterMode = safeStorageGet('touchbridge.stick.centerMode');
   if (savedCenterMode === 'adaptive' || savedCenterMode === 'fixed') centerModeSelect.value = savedCenterMode;
-  const savedRange = Number(safeStorageGet('touchbridge.stick.centerRange'));
-  if (Number.isFinite(savedRange) && savedRange >= 20 && savedRange <= 65) centerRange.value = String(savedRange);
-  centerRangeValue.value = `${centerRange.value}%`;
   const savedDeadzone = Number(safeStorageGet('touchbridge.stick.deadzone'));
   if (Number.isFinite(savedDeadzone) && savedDeadzone >= 0 && savedDeadzone <= 25) stickDeadzone.value = String(savedDeadzone);
   stickDeadzoneValue.value = `${stickDeadzone.value}%`;
@@ -2055,8 +2161,49 @@
   }
   const appVersion = window.TouchBridgeAndroid?.getAppVersion?.()
     || document.querySelector('meta[name="touchbridge-version"]')?.content
-    || '0.7.0';
+    || '0.8.0';
   if (appVersionValue) appVersionValue.textContent = `Version ${appVersion}`;
+  if (checkUpdatesButton) {
+    if (!window.TouchBridgeAndroid?.checkForUpdates) {
+      checkUpdatesButton.disabled = true;
+      setUpdateStatus('Update checks and in-app installation are available in the Android app.');
+    }
+    checkUpdatesButton.addEventListener('click', () => {
+      if (!window.TouchBridgeAndroid?.checkForUpdates) return;
+      availableUpdateVersion = '';
+      if (installUpdateButton) installUpdateButton.hidden = true;
+      setUpdateStatus('Checking GitHub Releases…');
+      checkUpdatesButton.disabled = true;
+      try {
+        if (!window.TouchBridgeAndroid.checkForUpdates()) {
+          checkUpdatesButton.disabled = false;
+          setUpdateStatus('An update check is already running.', 'error');
+        }
+      } catch {
+        checkUpdatesButton.disabled = false;
+        setUpdateStatus('Could not start the update check.', 'error');
+      }
+    });
+  }
+  if (installUpdateButton) {
+    installUpdateButton.addEventListener('click', () => {
+      if (!availableUpdateVersion || !window.TouchBridgeAndroid?.installUpdate) return;
+      installUpdateButton.disabled = true;
+      installUpdateButton.textContent = 'Preparing update…';
+      setUpdateStatus(`Preparing version ${availableUpdateVersion}…`);
+      try {
+        if (!window.TouchBridgeAndroid.installUpdate()) {
+          installUpdateButton.disabled = false;
+          installUpdateButton.textContent = 'Download and install';
+          setUpdateStatus('The update could not be started. Check again and retry.', 'error');
+        }
+      } catch {
+        installUpdateButton.disabled = false;
+        installUpdateButton.textContent = 'Download and install';
+        setUpdateStatus('The update could not be started.', 'error');
+      }
+    });
+  }
   $('openRepositoryButton')?.addEventListener('click', () => {
     if (window.TouchBridgeAndroid?.openRepository) window.TouchBridgeAndroid.openRepository();
     else window.open('https://github.com/Spont-427/touchbridge-controller', '_blank', 'noopener');

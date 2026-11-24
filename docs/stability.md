@@ -38,3 +38,14 @@ Every proposed change must be reviewed and pass CI before merge. Security-sensit
 ## What tests cannot establish
 
 Cross-compilation and unit tests do not prove that real desktop input works on every kernel, compositor, game, Windows security configuration or Android manufacturer. Linux `uinput`, Windows `SendInput`, Wi-Fi latency, sleep/resume and real gamepad enumeration must be tested on physical devices before a stable release.
+
+
+## Android in-app updates
+
+- The Android client queries only the official repository's latest stable GitHub release over HTTPS; drafts and prereleases are rejected.
+- The selected release asset must have the expected stable or debug filename and an HTTPS URL from the official repository.
+- Update downloads are capped at 200 MiB and stored in the app cache.
+- Before opening Android's package installer, the client verifies the APK package name, version name, version code and signing-certificate fingerprint against the installed app.
+- Android's package installer remains responsible for installation and user confirmation. TouchBridge does not silently install packages.
+- Every stable APK must use the same private release signing key. A different key is rejected by the in-app updater and cannot update the existing stable installation in place.
+- Debug APKs are separate tester builds and may use a different debug certificate between builds. They are not the normal stable update path.

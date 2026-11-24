@@ -1,10 +1,10 @@
 # TouchBridge
 
-TouchBridge turns Android phones into customizable wireless controllers for a Windows or Linux PC over your local network.
+TouchBridge turns Android phones into customizable wireless controllers for a Windows or Linux PC over a local network.
 
-[GitHub repository](https://github.com/Spont-427/touchbridge-controller) · [All releases](https://github.com/Spont-427/touchbridge-controller/releases) · [Report a bug](https://github.com/Spont-427/touchbridge-controller/issues)
+[GitHub repository](https://github.com/Spont-427/touchbridge-controller) · [Releases](https://github.com/Spont-427/touchbridge-controller/releases) · [Report a bug](https://github.com/Spont-427/touchbridge-controller/issues)
 
-**Version:** `0.7.0` · **Release:** preparing the next stable release
+**Version:** `0.8.0` · **Release status:** preparing the next stable release
 
 ## Screenshots
 
@@ -34,16 +34,23 @@ You need the Android app on each phone and the desktop server on your PC. Downlo
 ### Android app
 
 <p>
-  <a href="https://github.com/Spont-427/touchbridge-controller/releases/download/v0.7.0/TouchBridge-0.7.0.apk"><img src="internal/web/web/icon.svg" alt="TouchBridge app icon" width="32" height="32" align="middle"> <strong>Download TouchBridge 0.7.0 for Android</strong></a>
+  <a href="https://github.com/Spont-427/touchbridge-controller/releases/download/v0.8.0/TouchBridge-0.8.0.apk">
+    <img src="docs/assets/touchbridge-app-icon.png" alt="TouchBridge app icon" width="36" height="36" align="middle">
+    <strong>Download TouchBridge 0.8.0 for Android</strong>
+  </a>
 </p>
 
-The stable APK is signed with the project's private release key and is the recommended download for normal use.
+The stable APK includes the TouchBridge launcher icon, so the app is identifiable in the Android app drawer and installer. It is signed with the project's private release key and is the recommended download for normal use.
 
-[Download the separate debug APK (for testing)](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.7.0/TouchBridge-0.7.0-debug.apk)
+[Download the separate debug APK (for testing)](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.8.0/TouchBridge-0.8.0-debug.apk)
 
-The debug APK is debug-signed and may expose WebView debugging. Use it for testing and troubleshooting, not as the normal stable installation. The `Release downloads` workflow builds and attaches it automatically. Only install APKs from the official TouchBridge Releases page.
+The debug APK is debug-signed and may expose WebView debugging. Use it for testing and troubleshooting, not as the normal stable installation. The `Release downloads` workflow builds and attaches it automatically. Only install APKs from the official TouchBridge Releases page. Android may still show its normal prompt for installing apps from outside the Play Store; an app icon does not replace Android's installation and security checks.
 
-The stable download link becomes active when the `v0.7.0` release and its matching APK are published.
+### In-app updates
+
+In the Android app, open **Settings → About → App updates** and tap **Check for updates**. TouchBridge checks the latest stable GitHub release. When an update is available, it downloads the matching APK, checks the package name, version and signing certificate, then opens Android's installer for your confirmation. Updates are not installed silently.
+
+The stable updater requires future stable APKs to use the same private signing key. Debug builds use a separate debug key and are intended for testing.
 
 ### Desktop server
 
@@ -51,52 +58,35 @@ Choose the package for your PC:
 
 | PC | Download | Start it |
 |---|---|---|
-| Windows x64 (Intel/AMD) | [TouchBridge for Windows (.zip)](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.7.0/TouchBridge-Windows-x64.zip) | Extract the ZIP and double-click `Start-TouchBridge.bat`. Run `Setup-TouchBridge-Windows.bat` once for virtual gamepad support. |
-| Linux x86_64 | [TouchBridge for Linux x86_64 (.tar.gz)](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.7.0/TouchBridge-Linux-x86_64.tar.gz) | Extract the archive and run `./Install-TouchBridge-Linux.sh` in a terminal. |
-| Linux ARM64 | [TouchBridge for Linux ARM64 (.tar.gz)](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.7.0/TouchBridge-Linux-ARM64.tar.gz) | Extract the archive and run `./Install-TouchBridge-Linux.sh` in a terminal. |
+| Windows x64 (Intel/AMD) | [TouchBridge for Windows (.zip)](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.8.0/TouchBridge-Windows-x64.zip) | Extract the ZIP and double-click `Start-TouchBridge.bat`. Run `Setup-TouchBridge-Windows.bat` once for virtual gamepad support. |
+| Linux x86_64 | [TouchBridge for Linux x86_64 (.tar.gz)](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.8.0/TouchBridge-Linux-x86_64.tar.gz) | Extract the archive and run `./Install-TouchBridge-Linux.sh` in a terminal. |
+| Linux ARM64 | [TouchBridge for Linux ARM64 (.tar.gz)](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.8.0/TouchBridge-Linux-ARM64.tar.gz) | Extract the archive and run `./Install-TouchBridge-Linux.sh` in a terminal. |
 
-The `Release downloads` GitHub Actions workflow builds and attaches the Windows and Linux packages plus the Android debug APK when a GitHub Release is published. Build the stable signed APK on your release machine with `scripts/build-android-release.sh`, then upload `TouchBridge-0.7.0.apk` to the same release.
+The `Release downloads` GitHub Actions workflow builds and attaches the Windows and Linux packages plus the Android debug APK when a GitHub Release is published. Build the stable signed APK on your release machine with `scripts/build-android-release.sh`, then upload `TouchBridge-0.8.0.apk` to the same release.
 
-### Windows virtual gamepad
+## Features
 
-Windows mouse and keyboard input work without extra software. Xbox 360-compatible virtual gamepad output requires the optional ViGEmBus 1.22.0 driver:
-
-1. Extract the Windows ZIP.
-2. Double-click `Setup-TouchBridge-Windows.bat` and approve the Windows administrator prompt. The script downloads the pinned official driver, verifies its SHA-256 checksum and configures private-network firewall rules.
-3. Start TouchBridge with `Start-TouchBridge.bat`.
-4. Keep the server window open. It displays the six-digit pairing PIN.
-
-The TouchBridge server itself runs without administrator rights. See [Windows gamepad setup](docs/windows-gamepad.md).
-
-### Linux virtual gamepad
-
-Linux exposes up to four generic virtual gamepads through `/dev/uinput`. The installer configures the required device permissions. See [Linux setup](docs/linux-setup.md).
+- Connect up to four Android phones to one PC at the same time. Each phone receives its own player slot (`P1`–`P4`) and virtual gamepad.
+- A fifth connection is refused while all four slots are in use. Disconnected player slots are reused.
+- Each player has independent gamepad state. Shared keyboard keys and mouse buttons remain held until their last player releases them.
+- Customizable layouts with analog sticks, D-pad, face buttons, triggers, steering wheel and racing pedals.
+- Adaptive sticks move the complete stick face to the first touch point for the duration of the gesture; fixed-centre mode is also available.
+- Import and export controller layouts as JSON. Older `Stick click L/R` labels are migrated to `L3/R3 click`.
+- Keep the phone screen awake while the controller is open. This is enabled by default and can be changed under **Settings → Controls & haptics**.
+- Check for stable Android updates from **Settings → About**. Downloaded APKs are checked against the installed package and signing certificate before Android's installer is opened.
+- PIN pairing, trusted reconnection and automatic PC discovery.
+- Linux mouse, keyboard and virtual gamepad support through `/dev/uinput`.
+- Windows mouse and keyboard support, plus an Xbox 360-compatible virtual gamepad through ViGEmBus when installed.
 
 ## Connect your phones to your PC
 
 1. Start the desktop server on your PC.
-2. Connect the PC and all phones to the same trusted Wi-Fi network.
-3. Open TouchBridge on each phone and go to **Computers**.
-4. Tap **Find computers** and select the PC. You can enter its address manually if it is not found.
-5. Enter the six-digit pairing PIN shown by the desktop server on each phone.
+2. Connect each phone and the PC to the same trusted Wi-Fi network.
+3. Open TouchBridge on each phone and select **Computers**.
+4. Tap **Find computers** and select your PC. You can enter its address manually if it is not found.
+5. Enter the six-digit PIN shown by the desktop server.
 
-Up to **four phones** can control the same PC simultaneously. Each phone receives a player slot (`P1`–`P4`) and its own virtual gamepad. A fifth connection is rejected while all four slots are occupied. When a phone disconnects, its slot is released for the next player; the other players keep their gamepad and held input state.
-
-## Features
-
-- Up to four simultaneous phone controllers with player badges and independent virtual gamepad slots.
-- Per-player cleanup: disconnecting one phone releases only its gamepad and its owned keyboard/mouse holds.
-- Customizable controller layouts with two analog sticks, a D-pad, buttons and triggers.
-- Analog accelerator and brake pedals mapped to RT and LT.
-- Draggable steering wheel mapped to the left stick's horizontal axis, with automatic recentering.
-- Optional gyro steering with neutral calibration, filtering, deadzone and inversion.
-- Digital and analog trigger modes; digital LT/RT send both the button and full trigger pressure.
-- Network latency indicator with RTT, p95 and jitter details.
-- Keeps the phone screen awake while the controller is open, enabled by default and configurable under **Settings → Controls & haptics**.
-- Layout creation, editing, duplication, import and export, with size-aware placement for large controls.
-- System, Dark, AMOLED black and Light themes.
-- Settings for Appearance, Controls & haptics, Analog sticks and About.
-- PIN pairing, trusted reconnection and automatic PC discovery.
+The server must remain running while the phones are being used as controllers.
 
 ## Platform support
 
@@ -118,7 +108,7 @@ Build a debug APK for testing:
 ./scripts/build-android-debug.sh
 ```
 
-Build a stable signed APK using the same private release keystore as earlier stable releases. See [Android APK build instructions](android-client/BUILD-APK.md):
+Build a signed stable APK after configuring your private release keystore as described in [Android APK build instructions](android-client/BUILD-APK.md):
 
 ```sh
 ./scripts/build-android-release.sh
@@ -145,7 +135,9 @@ The packages are created in `dist/`.
 
 ## Security
 
-The default HTTP/WebSocket connection is not encrypted. Use TouchBridge only on a trusted private network unless you configure TLS. Do not expose its ports directly to the public internet. Windows virtual gamepad output uses the third-party ViGEmBus driver; see the [security notes](SECURITY.md).
+The default HTTP/WebSocket connection is not encrypted. Use TouchBridge only on a trusted private network unless you configure TLS. Do not expose its ports directly to the public internet.
+
+The in-app updater checks the APK package name, version, version code and signing certificate before opening Android's package installer. Keep the stable release keystore private and use the same key for every stable update. Windows virtual gamepad output depends on the optional third-party ViGEmBus driver; see [Windows gamepad setup](docs/windows-gamepad.md).
 
 ## Documentation
 
@@ -153,7 +145,7 @@ The default HTTP/WebSocket connection is not encrypted. Use TouchBridge only on 
 - [Windows gamepad](docs/windows-gamepad.md)
 - [Controller UI](docs/controller-ui.md)
 - [Network protocol](docs/protocol.md)
-- [Stability and validation](docs/stability.md)
+- [Validation record](docs/validation.md)
 - [Security notes](SECURITY.md)
 - [Changelog](CHANGELOG.md)
 - [Release notes](RELEASE-NOTES.md)

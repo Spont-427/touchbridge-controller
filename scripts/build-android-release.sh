@@ -4,29 +4,61 @@ set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION="$(tr -d '\r\n' < "$ROOT/VERSION")"
 GRADLE_FILE="$ROOT/android-client/app/build.gradle.kts"
-APK="$ROOT/android-client/app/build/outputs/apk/debug/app-debug.apk"
+KEYSTORE="${TOUCHBRIDGE_RELEASE_KEYSTORE:-}"
+KEY_ALIAS="${TOUCHBRIDGE_RELEASE_KEY_ALIAS:-}"
 
-if [[ -z "$VERSION" ]]; then
-  echo "VERSION is empty; cannot name the APK." >&2
+if [[ -z "$VERSION" ]] || ! grep -Fq "versionName = \"$VERSION\"" "$GRADLE_FILE"; then
+  echo "VERSION is empty or does not match android-client/app/build.gradle.kts." >&2
   exit 1
 fi
+if [[ -z "$KEYSTORE" || ! -f "$KEYSTORE" ]]; then
+  echo "Set TOUCHBRIDGE_RELEASE_KEYSTORE to your private release keystore file." >&2
+  exit 1
+fi
+if [[ -z "$KEY_ALIAS" ]]; then
+  echo "Set TOUCHBRIDGE_RELEASE_KEY_ALIAS to the alias in your release keystore." >&2
+  exit 1
+fi
+: "${TOUCHBRIDGE_RELEASE_STORE_PASSWORD:?Set TOUCHBRIDGE_RELEASE_STORE_PASSWORD in the environment.}"
+: "${TOUCHBRIDGE_RELEASE_KEY_PASSWORD:?Set TOUCHBRIDGE_RELEASE_KEY_PASSWORD in the environment.}"
 
-if ! grep -Fq "versionName = \"$VERSION\"" "$GRADLE_FILE"; then
-  echo "VERSION ($VERSION) does not match android-client/app/build.gradle.kts." >&2
+SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/Android/Sdk}}"
+if [[ -z "${APKSIGNER:-}" ]]; then
+  APKSIGNER="$(find "$SDK_ROOT/build-tools" -mindepth 2 -maxdepth 2 -type f -name apksigner -print 2>/dev/null | sort -V | tail -n 1 || true)"
+fi
+if [[ -z "${ZIPALIGN:-}" ]]; then
+  ZIPALIGN="$(find "$SDK_ROOT/build-tools" -mindepth 2 -maxdepth 2 -type f -name zipalign -print 2>/dev/null | sort -V | tail -n 1 || true)"
+fi
+if [[ -z "${APKSIGNER:-}" || ! -x "$APKSIGNER" ]]; then
+  echo "Could not find apksigner under $SDK_ROOT/build-tools. Install Android SDK Build Tools 36.0.0 or set APKSIGNER." >&2
+  exit 1
+fi
+if [[ -z "${ZIPALIGN:-}" || ! -x "$ZIPALIGN" ]]; then
+  echo "Could not find zipalign under $SDK_ROOT/build-tools. Install Android SDK Build Tools 36.0.0 or set ZIPALIGN." >&2
   exit 1
 fi
 
 cd "$ROOT/android-client"
-./gradlew assembleDebug --no-daemon
+./gradlew assembleRelease --no-daemon
 
-if [[ ! -f "$APK" ]]; then
-  echo "Gradle completed but the expected APK was not found: $APK" >&2
+UNSIGNED_APK="$ROOT/android-client/app/build/outputs/apk/release/app-release-unsigned.apk"
+if [[ ! -f "$UNSIGNED_APK" ]]; then
+  echo "Gradle completed but the expected unsigned APK was not found: $UNSIGNED_APK" >&2
   exit 1
 fi
 
 mkdir -p "$ROOT/dist"
-OUTPUT="$ROOT/dist/TouchBridge-${VERSION}-debug.apk"
-cp "$APK" "$OUTPUT"
+ALIGNED_APK="$ROOT/android-client/app/build/outputs/apk/release/app-release-aligned.apk"
+OUTPUT="$ROOT/dist/TouchBridge-${VERSION}.apk"
+"$ZIPALIGN" -f -p 4 "$UNSIGNED_APK" "$ALIGNED_APK"
+"$APKSIGNER" sign \
+  --ks "$KEYSTORE" \
+  --ks-key-alias "$KEY_ALIAS" \
+  --ks-pass env:TOUCHBRIDGE_RELEASE_STORE_PASSWORD \
+  --key-pass env:TOUCHBRIDGE_RELEASE_KEY_PASSWORD \
+  --out "$OUTPUT" \
+  "$ALIGNED_APK"
+"$APKSIGNER" verify --verbose --print-certs "$OUTPUT"
 sha256sum "$OUTPUT"
-printf '\nRelease APK prepared: %s\n' "$OUTPUT"
-printf 'Attach this file to the GitHub release tagged v%s.\n' "$VERSION"
+printf '\nSigned stable APK prepared: %s\n' "$OUTPUT"
+printf 'Back up the release keystore securely. You must use the same key for every future update.\n'

@@ -1,4 +1,4 @@
-const CACHE = 'touchbridge-shell-v8';
+const CACHE = 'touchbridge-shell-v9';
 const ASSETS = ['/', '/app.css', '/app.js', '/theme.js', '/gamepad-core.js', '/manifest.webmanifest', '/icon.svg'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS))));
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))));

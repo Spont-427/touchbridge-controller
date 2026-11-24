@@ -1,41 +1,70 @@
-# Build the Android APK
+# Build Android APKs
 
 ## Requirements
 
-- Android Studio with Android SDK Platform 35 and Build Tools 35.0.0.
+- Android Studio with Android SDK Platform 35 and Android SDK Build Tools 36.0.0.
 - JDK 17 (Android Studio's embedded JBR 17 is suitable).
-- Gradle 8.9 for the AGP 8.7.3 build configured in CI.
+- The project uses Android Gradle Plugin 9.5.2 and the Gradle 9.6.0 wrapper.
 
-## Android Studio
+## Debug APK (testing)
 
-1. Extract the TouchBridge source archive.
-2. Open the `android-client` directory as the project (not the outer release directory).
-3. Select JDK 17 under **Settings → Build Tools → Gradle → Gradle JDK**.
-4. In **Tools → SDK Manager → SDK Platforms**, install **Android 15 / API 35**. Install Android SDK Build-Tools 35.0.0 from SDK Tools.
-5. Sync the project. CI pins Gradle 8.9 for reproducible builds.
-6. Select **Build → Build Bundle(s) / APK(s) → Build APK(s)**.
-7. The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
+From the repository root:
 
-## Command line
+```sh
+./scripts/build-android-debug.sh
+```
 
-From the repository root, with JDK 17 and Android SDK 35 configured:
+The script runs `assembleDebug`, checks that the Gradle `versionName` matches `VERSION`, and copies the APK to `dist/TouchBridge-0.6.0-debug.apk`.
+
+A debug APK is signed with the Android debug key and has WebView debugging enabled. It is useful for testers, but it is not the recommended stable download.
+
+## Stable signed APK
+
+Create a release keystore once and keep it private. Do not put it in the repository, a cloud-synced public folder or a GitHub issue. Keep at least one encrypted offline backup: losing the key means you cannot sign compatible updates for existing stable installations.
+
+For example, create a key outside the repository:
+
+```sh
+mkdir -p "$HOME/.keys"
+keytool -genkeypair -v \
+  -keystore "$HOME/.keys/touchbridge-release.jks" \
+  -alias touchbridge \
+  -keyalg RSA -keysize 4096 -validity 10000
+```
+
+Set the path and alias, then enter the passwords without putting them in shell history:
+
+```sh
+export TOUCHBRIDGE_RELEASE_KEYSTORE="$HOME/.keys/touchbridge-release.jks"
+export TOUCHBRIDGE_RELEASE_KEY_ALIAS="touchbridge"
+read -rsp "Keystore password: " TOUCHBRIDGE_RELEASE_STORE_PASSWORD; echo
+export TOUCHBRIDGE_RELEASE_STORE_PASSWORD
+read -rsp "Key password: " TOUCHBRIDGE_RELEASE_KEY_PASSWORD; echo
+export TOUCHBRIDGE_RELEASE_KEY_PASSWORD
+```
+
+Make sure `ANDROID_SDK_ROOT` points to your Android SDK (usually `"$HOME/Android/Sdk"`). Build and sign:
 
 ```sh
 ./scripts/build-android-release.sh
 ```
 
-The script runs the Gradle wrapper and copies the APK to `dist/TouchBridge-0.5.3-alpha-debug.apk`. Attach that file to the GitHub release tagged `v0.5.3-alpha`.
+The script runs `assembleRelease`, aligns the unsigned APK, signs it using `apksigner`, verifies the signature and writes `dist/TouchBridge-0.6.0.apk` with a SHA-256 checksum. The signing passwords are read from environment variables; the script does not print them.
 
-**Keep the same signing key for updates:** the alpha APKs are debug-signed. Build on the same development machine used for the previous alpha APK so Android Studio/Gradle reuses that machine's `~/.android/debug.keystore`. Do not delete or regenerate that keystore, and never commit it to Git. The `0.5.3-alpha` APK built for this release has a signing certificate matching the previously published `0.5.2-alpha` APK. The APK is distributed separately as a GitHub Release asset; generated APKs are intentionally excluded from the source repository. Building on a different machine or an ephemeral CI runner will normally use a different debug key, and Android will reject it as an in-place update; users would have to uninstall the old app first (which removes its local app data).
+Upload both `TouchBridge-0.6.0.apk` and `TouchBridge-0.6.0-debug.apk` to the GitHub release if you want to provide a stable build and a separate tester build. The README links point to those exact release asset names.
+
+## Android Studio
+
+1. Open the `android-client` directory as a project.
+2. Select JDK 17 under **Settings → Build Tools → Gradle → Gradle JDK**.
+3. In **Tools → SDK Manager**, install Android 15 / API 35 and Android SDK Build Tools 36.0.0.
+4. Allow Gradle sync to finish.
+5. For a test build, choose **Build → Build Bundle(s) / APK(s) → Build APK(s)**. For the stable build, use the signed release script above after creating the keystore.
+
+## Updating from the alpha debug APK
+
+The stable APK is signed with your private release key, not the publicly known Android debug key used for development builds. Android treats those as different signing identities, so the first stable install cannot update an existing alpha debug install in place. Export custom layouts to JSON, then uninstall the alpha app before installing the stable APK. Uninstalling also clears app-local preferences, remembered computers and trusted pairing credentials, so configure preferences and pair the PC again after installation. Keep using the same private release key for every future stable update.
 
 ## App architecture
 
-The Android app loads its bundled UI from `app/src/main/assets/controller/` using the fixed local origin `https://touchbridge.appassets.local`. It does not load UI pages from the PC. Only discovery and input use the local network. The native bridge handles LAN UDP discovery, encrypted trusted-server storage and orientation/fullscreen changes.
-
-After changing the shared web UI in `internal/web/web/`, run `scripts/sync-android-assets.sh` from the repository root. The quality gate verifies that the two copies match.
-
-## Install
-
-```sh
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-```
+The Android app bundles the shared controller UI under `app/src/main/assets/controller/` and loads it from the fixed local origin `https://touchbridge.appassets.local`. It uses the local network only for discovery and input. After changing `internal/web/web/`, run `scripts/sync-android-assets.sh`; CI verifies byte-for-byte parity.

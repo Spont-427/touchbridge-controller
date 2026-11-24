@@ -4,12 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
   <meta name="theme-color" content="#0b0e13">
-  <script src="/theme.js?v=0.5.3-alpha"></script>
+  <script src="/theme.js?v=0.6.0"></script>
   <meta name="description" content="A customizable landscape game controller for Windows and Linux, with mouse and keyboard tools.">
+  <meta name="touchbridge-version" content="0.6.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss: http: https:; object-src 'none'; base-uri 'none';">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/app.css?v=0.5.3-alpha">
+  <link rel="stylesheet" href="/app.css?v=0.6.0">
   <title>TouchBridge</title>
 </head>
 <body>
@@ -53,7 +54,7 @@
       <div class="play-hud" aria-label="Connection status">
         <button id="latencyBadge" class="ping-indicator" type="button" title="Network round-trip time" aria-label="Network latency">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h3l2-5 4 10 2-5h7"/></svg>
-          <span id="latencyValue">—</span>
+          <span id="latencyValue">— ms</span>
         </button>
         <button id="connectionBadge" class="status-badge offline connection-pill" type="button" aria-label="Connection status. Open computer connections.">
           <span class="status-dot"></span><span id="statusText">Disconnected</span>
@@ -110,30 +111,78 @@
     <section id="settingsScreen" class="screen sub-screen settings-screen" hidden>
       <header class="screen-header"><div><span class="eyebrow">PREFERENCES</span><h2>Settings</h2></div></header>
       <section class="settings-group">
-        <h3>Appearance</h3>
-        <label class="settings-row" for="themeSelect"><span><strong>Theme</strong><small>Follow the system or force light or dark</small></span><select id="themeSelect" class="settings-select"><option value="system">System</option><option value="dark">Dark</option><option value="light">Light</option></select></label>
-      </section>
-      <section class="settings-group">
-        <h3>Layouts</h3>
+        <h3>Controller</h3>
+        <button id="settingsAppearanceButton" class="settings-link" type="button"><span><strong>Appearance</strong><small>Theme and visual style</small></span><span>›</span></button>
+        <button id="settingsControlsButton" class="settings-link" type="button"><span><strong>Controls &amp; haptics</strong><small>Triggers, vibration and gyro steering</small></span><span>›</span></button>
+        <button id="settingsSticksButton" class="settings-link" type="button"><span><strong>Analog sticks</strong><small>Centring, deadzone and response curve</small></span><span>›</span></button>
         <button id="settingsLayoutsButton" class="settings-link" type="button"><span><strong>Manage layouts</strong><small>Create custom layouts, duplicate or delete them</small></span><span>›</span></button>
       </section>
       <section class="settings-group">
-        <h3>Controls</h3>
+        <h3>More</h3>
+        <button id="settingsToolsButton" class="settings-link" type="button"><span><strong>Mouse &amp; keyboard</strong><small>Optional desktop controls</small></span><span>›</span></button>
+        <button id="settingsAboutButton" class="settings-link" type="button"><span><strong>About TouchBridge</strong><small>Version, project link and diagnostics</small></span><span>›</span></button>
+      </section>
+      <p class="settings-footnote">Preferences are stored on this phone.</p>
+    </section>
+
+    <section id="appearanceScreen" class="screen sub-screen settings-screen" hidden>
+      <header class="screen-header"><button id="appearanceBackButton" class="text-button" type="button">← Settings</button><div><span class="eyebrow">APPEARANCE</span><h2>Theme</h2></div></header>
+      <section class="settings-group">
+        <h3>Colour theme</h3>
+        <label class="settings-row" for="themeSelect"><span><strong>Theme</strong><small>Follow the system or choose a fixed palette</small></span><select id="themeSelect" class="settings-select"><option value="system">System</option><option value="dark">Dark</option><option value="amoled">AMOLED black</option><option value="light">Light</option></select></label>
+        <p class="setting-help">Dark uses a soft near-black background. AMOLED black uses true black for OLED displays.</p>
+      </section>
+    </section>
+
+    <section id="controlsScreen" class="screen sub-screen settings-screen" hidden>
+      <header class="screen-header"><button id="controlsBackButton" class="text-button" type="button">← Settings</button><div><span class="eyebrow">CONTROLS</span><h2>Buttons &amp; triggers</h2></div></header>
+      <section class="settings-group">
+        <h3>Feedback</h3>
         <label class="settings-row" for="hapticsEnabled"><span><strong>Button haptics</strong><small>Vibrate briefly when a button is pressed</small></span><input id="hapticsEnabled" class="toggle-input" type="checkbox" checked></label>
-        <label class="settings-row" for="triggerModeSelect"><span><strong>LT / RT behaviour</strong><small>Choose pressure-sensitive or digital input</small></span><select id="triggerModeSelect" class="settings-select"><option value="analog">Analog triggers</option><option value="digital">Digital buttons</option></select></label>
       </section>
       <section class="settings-group">
-        <h3>Analog sticks</h3>
+        <h3>Triggers</h3>
+        <label class="settings-row" for="triggerModeSelect"><span><strong>LT / RT behaviour</strong><small>Choose pressure-sensitive or digital input</small></span><select id="triggerModeSelect" class="settings-select"><option value="analog">Analog triggers</option><option value="digital">Digital buttons</option></select></label>
+        <p class="setting-help">Digital mode keeps full trigger pressure for compatibility and also reports LT/RT as buttons.</p>
+      </section>
+      <section class="settings-group">
+        <h3>Gyro steering</h3>
+        <label class="settings-row" for="gyroSteeringEnabled"><span><strong>Tilt to steer</strong><small>Uses the phone gyroscope with a steering-wheel control</small></span><input id="gyroSteeringEnabled" class="toggle-input" type="checkbox"></label>
+        <label class="settings-row" for="gyroInvert"><span><strong>Invert direction</strong><small>Swap left and right tilt if steering feels backwards</small></span><input id="gyroInvert" class="toggle-input" type="checkbox"></label>
+        <button id="gyroCalibrateButton" class="secondary-button gyro-calibrate" type="button">Calibrate level position</button>
+        <p id="gyroStatus" class="setting-help" role="status">Gyro steering activates when this layout contains a steering wheel.</p>
+      </section>
+    </section>
+
+    <section id="sticksScreen" class="screen sub-screen settings-screen" hidden>
+      <header class="screen-header"><button id="sticksBackButton" class="text-button" type="button">← Settings</button><div><span class="eyebrow">ANALOG STICKS</span><h2>Stick behaviour</h2></div></header>
+      <section class="settings-group">
+        <h3>Position and feel</h3>
         <label class="settings-row" for="stickCenterMode"><span><strong>Stick centre</strong><small>Adaptive follows your first touch; fixed uses a permanent centre</small></span><select id="stickCenterMode" class="settings-select"><option value="adaptive">Adaptive</option><option value="fixed">Fixed</option></select></label>
         <label class="settings-range-row" for="centerRange"><span>Adaptive activation range <output id="centerRangeValue">48%</output></span><input id="centerRange" class="range" type="range" min="20" max="65" step="1" value="48"></label>
         <label class="settings-range-row" for="stickDeadzone"><span>Radial deadzone <output id="stickDeadzoneValue">8%</output></span><input id="stickDeadzone" class="range" type="range" min="0" max="25" step="1" value="8"></label>
         <label class="settings-row" for="stickCurve"><span><strong>Response curve</strong><small>How quickly the stick reaches full input</small></span><select id="stickCurve" class="settings-select"><option value="linear">Linear</option><option value="precision">Precision</option><option value="responsive">Responsive</option></select></label>
       </section>
-      <section class="settings-group">
-        <h3>Other input</h3>
-        <button id="settingsToolsButton" class="settings-link" type="button"><span><strong>Mouse &amp; keyboard</strong><small>Optional desktop controls</small></span><span>›</span></button>
+    </section>
+
+    <section id="aboutScreen" class="screen sub-screen settings-screen" hidden>
+      <header class="screen-header"><button id="aboutBackButton" class="text-button" type="button">← Settings</button><div><span class="eyebrow">ABOUT</span><h2>TouchBridge</h2></div></header>
+      <section class="about-card">
+        <div class="about-mark" aria-hidden="true"><span></span><span></span></div>
+        <div><strong>TouchBridge</strong><span id="appVersionValue" class="about-version">Version 0.6.0</span></div>
       </section>
-      <p class="settings-footnote">Preferences are stored on this phone.</p>
+      <section class="settings-group">
+        <h3>Project</h3>
+        <button id="openRepositoryButton" class="settings-link" type="button"><span><strong>GitHub repository</strong><small>github.com/Spont-427/touchbridge-controller</small></span><span>↗</span></button>
+        <p class="setting-help">Controller profiles, layouts and input run locally. Only controller input is sent to a paired computer on your network.</p>
+      </section>
+      <section class="settings-group">
+        <h3>Diagnostics</h3>
+        <div class="about-stat"><span>Server version</span><strong id="aboutServerVersion">—</strong></div>
+        <div class="about-stat"><span>Connection</span><strong id="aboutConnectionState">Disconnected</strong></div>
+        <div class="about-stat"><span>Gamepad backend</span><strong id="aboutGamepadState">Unknown</strong></div>
+      </section>
+      <p class="settings-footnote">Windows and Linux desktop server · Android client</p>
     </section>
 
     <section id="layoutsScreen" class="screen sub-screen layouts-screen" hidden>
@@ -162,7 +211,7 @@
     <button type="button" class="bottom-nav-item" data-nav-screen="devices"><span class="bottom-nav-icon">▣</span><span>Computers</span></button>
     <button type="button" class="bottom-nav-item" data-nav-screen="settings"><span class="bottom-nav-icon">⚙</span><span>Settings</span></button>
   </nav>
-  <script src="/gamepad-core.js?v=0.5.3-alpha" defer></script>
-  <script src="/app.js?v=0.5.3-alpha" defer></script>
+  <script src="/gamepad-core.js?v=0.6.0" defer></script>
+  <script src="/app.js?v=0.6.0" defer></script>
 </body>
 </html>

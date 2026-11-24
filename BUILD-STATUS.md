@@ -1,65 +1,49 @@
-# Build status — 0.5.3-alpha
+# Build status — 0.6.0
 
-Date: 2026-11-21. Android `versionCode` 11, `versionName` 0.5.3-alpha. Desktop `appVersion` 0.5.3-alpha.
+Date: 2026-11-24. Android `versionCode` 12, `versionName` 0.6.0. Desktop server version: 0.6.0.
 
-## Changes in 0.5.3-alpha
+## Included changes
 
-- Add the optional Windows virtual gamepad backend through ViGEmBus 1.22.0, including one-time setup and capability reporting.
-- Fix the Android PIN pairing row on narrow screens by placing Pair device and Disconnect in separate grid columns.
-- Keep the shared desktop and Android CSS assets byte-identical.
+- Digital LT/RT input sends both the button and full trigger-axis pressure.
+- Latency indicator displays rolling median RTT and exposes p95/jitter details.
+- Accelerator and brake pedals use analog RT/LT pressure, increasing toward the bottom of the control.
+- Steering wheel maps its drag rotation to `left_x` and returns to neutral on release.
+- Optional gyro steering supports neutral calibration, filtering, deadzone and inversion and only runs for layouts containing a wheel.
+- Theme choices are System, Dark (`#0f141b`), AMOLED black and Light.
+- Settings are separated into Appearance, Controls & haptics, Analog sticks and About.
+- About displays app/server versions, connection state, gamepad backend status and the project link.
+- Size-aware placement improves positioning of large controls and reduces overlap/off-canvas placement.
+- Desktop and Android controller assets are synchronized.
 
-## Implemented
+## Source checks run in this workspace
 
-- Offline-first Android app with the shared controller UI bundled at a fixed local origin.
-- Dynamic home library built from four presets plus the custom-layout registry.
-- Settings → Manage layouts: create from the Xbox-style base, duplicate any layout, rename custom layouts, and delete custom layouts after inline confirmation. Presets are protected in the UI and in the delete handler.
-- Layout editor with drag positioning, control list, grid, 2% snap, smart placement, label/action/size/opacity editing, reset and JSON import/export.
-- Add-menu groups for individual buttons and complete D-pad, face-button, bumper and trigger sets.
-- Hostile-input validation for imported and stored layouts, including the 40-control limit and required left/right sticks.
-- Landscape immersive controller and editor screens; system Back returns to the library or the previous screen. The on-screen back chip has been removed.
-- Immediate button haptics through the platform predefined click waveform, gated by the persisted Button haptics setting. Sticks do not vibrate; controller long-press context menus are suppressed.
-- System / Light / Dark theme selection with native system-bar icon updates.
-- Adaptive or fixed stick centres, activation range, radial deadzone and three response curves.
-- Analog or digital LT/RT modes.
-- Android UDP discovery, manual address entry, PIN pairing and Keystore-encrypted trusted reconnect tokens.
-- Optional mouse and keyboard tools.
-- Linux x64/ARM64 and Windows x64 desktop builds.
-- Optional Windows virtual gamepad through ViGEmBus: an Xbox 360-compatible XInput controller is created on the first gamepad input, reset on disconnect and unplugged on shutdown. Without the driver, mouse and keyboard remain available.
-- `Setup-TouchBridge-Windows.bat` automates the one-time Windows setup: it verifies and installs the pinned ViGEmBus 1.22.0 package and adds private-network firewall rules for TCP 8765 and UDP 8766.
+- `gofmt -l .` — passed.
+- `go test -race ./...` — passed.
+- `go vet ./...` — passed.
+- Node syntax checks — passed.
+- Controller math tests — 18/18 passed.
+- Shell syntax — passed.
+- DOM binding audit — 107 direct references, no missing IDs.
+- Android/web asset parity — 8/8 identical.
+- Protocol fuzz smoke test — passed for one second. Web fuzz smoke test timed out and is not marked as passed.
 
-## Validation performed
+## Toolchain alignment
 
-- `go test ./...` passed after the final changes, including ViGEmBus request-encoding tests.
-- Windows amd64, ARM64 and 386 cross-compilation passed with `CGO_ENABLED=0`.
-- Go race tests and `go vet` passed during this source line.
-- JavaScript syntax passed for the app, gamepad core, theme and service worker.
-- DOM audit: 86 direct references, no missing IDs. CSS braces balanced at 769/769.
-- Android assets are byte-identical to the shared web UI after sync.
-- The `0.5.2-alpha` baseline debug APK built successfully and was installed on an API 37 emulator. The `0.5.3-alpha` debug APK was built on the developer release machine with Android `versionCode` 11 and `versionName` 0.5.3-alpha; its signing certificate matches the previously published `0.5.2-alpha` APK.
-- Emulator interaction tests covered layout create/duplicate/rename/delete, preset protection, active-layout fallback, persistence across force-stop, button sets, themes, system Back exit and haptics on/off.
-- Haptics were verified through `dumpsys vibrator_manager`: an immediate `Prebaked=CLICK`, `usage: TOUCH` request with the toggle on, and no new request with it off.
+- Android Gradle Plugin 9.5.2.
+- Gradle wrapper 9.6.0.
+- JDK 17.
+- Android SDK Platform 35.
+- Android SDK Build Tools 36.0.0.
+- Kotlin uses AGP's built-in Kotlin support; the old `org.jetbrains.kotlin.android` plugin is removed.
 
-See [docs/validation.md](docs/validation.md) for the full record.
+## Release artifact status
 
-## Not validated
+The prebuilt APK inside the uploaded project is still version `0.5.3-alpha`, Android `versionCode` 11 and debug-signed. It is deliberately excluded from the PR-ready source archive and is not a valid 0.6.0 upload. The release workflow builds and attaches a fresh 0.6.0 debug APK for testers; build the stable signed APK with `scripts/build-android-release.sh` and your private release keystore, then upload it to the same release.
 
-- Physical Android hardware, including haptic motor feel, display cutouts and real touch sampling.
-- Physical Windows/Linux input injection, discovery and gamepad enumeration.
-- Physical Windows ViGEmBus behaviour: XInput slot assignment, rumble, sleep/resume, reconnect and coexistence with other virtual-controller tools.
-- The Windows setup script's UAC flow, Advanced Installer silent flags and firewall rule creation have not been executed on Windows from this environment.
-- Real games, anti-cheat software, long sessions and unstable networks.
-- `scripts/check.sh` in full: the environment's Node installation is broken (`libsimdjson.so.36`).
-- `govulncheck`, CodeQL and GitHub Actions execution from this workspace.
-- Release signing and store distribution. The alpha artifact remains a debug APK.
-- Physical-device regression testing of the `0.5.3-alpha` APK remains outstanding.
+## Remaining validation before stable publication
 
-## Important caveats
-
-- Default HTTP/WebSocket transport is unencrypted. Tokens are protected at rest on Android and hashed on the server, but not encrypted in transit without TLS.
-- Android targets API 35. Implement Android 17's `ACCESS_LOCAL_NETWORK` runtime permission before raising the target SDK to 37.
-- Windows virtual gamepad output requires ViGEmBus 1.22.0 to be installed separately; Linux generic uinput gamepad support depends on kernel and permission configuration.
-- Desktop binaries are cross-compiled, not exercised on physical desktops in this environment.
-
-## Release APK
-
-The `0.5.3-alpha` debug APK has been built on the developer's established Android build machine. It uses Android `versionCode` 11 and its signing certificate matches the previous `0.5.2-alpha` APK, allowing in-place updates for existing testers. The source repository intentionally excludes generated APKs and build outputs; attach the separately supplied `TouchBridge-0.5.3-alpha-debug.apk` file to the GitHub release tagged `v0.5.3-alpha`. Rebuild only on the same development machine if the APK needs to be regenerated, so the existing debug signing key is reused.
+- Run the Android Gradle build on the release machine using the updated toolchain.
+- Install and test the 0.6.0 APK on a physical Android device. Specifically validate gyro permission, neutral calibration, portrait/landscape sensor orientation, steering wheel drag/release, pedals and the new settings flows.
+- Test trigger axis/button outputs, pedals and steering on physical Linux and Windows hosts, and in at least one target game or controller tester.
+- Run the GitHub Actions checks and vulnerability scan on the PR.
+- Build and verify the release-signed APK. Keep at least two encrypted backups of the release keystore.

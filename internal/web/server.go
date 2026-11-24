@@ -180,7 +180,11 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 	}
 	defer func() { _ = s.Input.ReleaseAll(); s.active.Store(false) }()
 	_ = c.conn.SetReadDeadline(time.Time{})
-	authReply := map[string]any{"type": "auth_ok"}
+	version := s.Version
+	if version == "" {
+		version = "unknown"
+	}
+	authReply := map[string]any{"type": "auth_ok", "server_version": version}
 	if s.TrustStore != nil {
 		authReply["server_id"] = s.TrustStore.ServerID()
 	}

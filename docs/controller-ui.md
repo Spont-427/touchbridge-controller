@@ -1,4 +1,4 @@
-# Controller UI and profiles (0.5.3-alpha)
+# Controller UI and profiles (0.6.0)
 
 The Android application bundles the shared controller UI locally under `app/src/main/assets/controller/`. The library, profiles, layout editor, stick settings and controller preview work without a desktop server. A server is needed only to transmit controller, keyboard or mouse state to a PC.
 
@@ -10,7 +10,7 @@ The same UI is served by the desktop server for browser preview, with Android-sp
 - **Controller:** dedicated landscape, immersive-fullscreen play surface.
 - **Layout Studio:** separate landscape, immersive-fullscreen editor. **Done** returns to the screen that opened it (Home or Manage layouts).
 - **Computers:** discovery, manual address entry, pairing and saved servers.
-- **Settings:** appearance, haptics, trigger mode, sticks and layout management.
+- **Settings:** separate Appearance, Controls & haptics, Analog sticks and About screens.
 - **Layouts manager:** portrait list of every installed layout with management actions.
 - **Tools:** optional mouse and keyboard screen, secondary to the gamepad flow.
 
@@ -73,7 +73,7 @@ The editor runs independently of a server and saves each layout separately.
 - **Selection:** tap a control or an entry in the selectable control list. Tapping empty canvas clears the selection and hides the compact property panel.
 - **Properties:** label, gamepad action, size in pixels and opacity. Sticks cannot be deleted; all other controls can.
 - **Grid and snap:** optional grid overlay and 2% snap-to-grid, persisted locally.
-- **Smart placement:** new controls are placed in the clearest available region rather than stacked at the centre. Button sets reserve space for every member.
+- **Smart placement:** new controls are placed in the clearest available region. Placement accounts for the new control size and stage bounds to reduce overlap and off-screen clipping. Button sets reserve space for every member.
 - **Reset:** restores the selected starter profile.
 - **Import/export:** JSON layout files through the browser picker/download flow, or Android's system document picker and save dialog.
 - **Limit:** the editor supports up to 40 controls per layout.
@@ -92,6 +92,8 @@ The add-control dropdown is grouped into two optgroups:
 | Face buttons (4) | `A`, `B`, `X`, `Y` arranged as a diamond |
 | Bumpers (LB / RB) | `LB` and `RB` |
 | Triggers (LT / RT) | `LT` and `RT` |
+| Pedals | Accelerator (`RT`) and brake (`LT`) with downward-increasing analog pressure |
+| Steering wheel | A single draggable wheel mapped to `left_x`; returns to centre on release |
 
 Sets are placed as a unit around the next free position and can be moved afterward; there is no group-drag behavior after placement. Any set that would exceed the 40-control cap is rejected as a whole.
 
@@ -108,20 +110,24 @@ Invalid imports leave the existing layout untouched.
 
 ## Play screen
 
-The controller fills the viewport in landscape. A compact connection pill and latency indicator sit at the top centre so they do not cover the corner triggers. Browser chrome, the app's bottom navigation and the editor tools are hidden.
+The controller fills the viewport in landscape. A compact connection pill and latency indicator sit at the top centre so they do not cover the corner triggers. The latency indicator displays rolling median RTT in milliseconds; its details show p95 and jitter. RTT is round-trip time, not one-way input-to-display latency. Browser chrome, the app's bottom navigation and the editor tools are hidden.
 
 - Controls remain tactile in offline preview mode: sticks move and buttons highlight locally.
 - Network state is sent only when the connection is authenticated and the selected server advertises a gamepad backend.
 - The system Back gesture returns to the library and restores portrait mode.
 - Pointer capture keeps a button held while the finger moves slightly outside it; release, cancellation and focus loss clear the state.
 - Sticks return to neutral on release, pointer cancellation, focus loss and connection loss.
+- Digital LT/RT send both the trigger button and full axis pressure; this keeps button and axis-based backends in sync.
+- Analog accelerator and brake pedals map to RT/LT and reach full pressure at the bottom of the pedal.
+- The steering wheel maps pointer rotation to the left stick horizontal axis and self-centres on release.
+- Optional gyro steering is only active on layouts that contain a wheel. It uses a calibrated neutral position, low-pass filtering, a 1.5-degree deadzone and optional direction inversion.
 
 ## Haptics
 
 - Feedback fires on **button pointer-down**, not on release and not when dragging sticks.
 - The Android bridge uses `VibrationEffect.createPredefined(EFFECT_CLICK)` on Android 10+ with touch usage on Android 13+, a 22 ms one-shot on Android 8–9, and a legacy 22 ms vibration below that.
 - The short 9 ms vibration used in earlier builds was below the perceptible threshold on many phone motors, which made it appear that haptics only arrived after WebView's long-press feedback.
-- **Settings → Button haptics** is checked at press time. When it is off, no vibration request reaches Android.
+- **Settings → Controls & haptics → Button haptics** is checked at press time. When it is off, no vibration request reaches Android.
 - Long-press context menus on the controller surface are suppressed so a held control does not add delayed native feedback.
 - Haptics are optional and failures in the bridge never block input.
 
@@ -139,24 +145,25 @@ The origin and knob reset on release, pointer cancellation, window focus loss an
 
 ## Settings
 
-- **Theme:** `System`, `Light` or `Dark`, persisted on the device. System follows the OS colour scheme; the native status and navigation bar icons are updated to match. The dark theme is an AMOLED-oriented near-black palette; the light theme uses a paper surface.
-- **Button haptics:** all-or-nothing gate for controller button feedback.
-- **LT/RT mode:** analog pressure or digital button. Digital triggers are sent in the button set; analog triggers report `[0, 1]` pressure.
-- **Stick settings:** centre mode, activation range, deadzone and curve.
-- **Manage layouts:** opens the layout manager described above.
+- **Appearance:** `System`, `Dark`, `AMOLED black` or `Light`, persisted on the device. System follows the OS colour scheme. Dark uses a neutral `#0f141b` background; AMOLED black is pure black; Light uses a paper surface. Native system-bar icons follow the selected theme.
+- **Controls & haptics:** button vibration, analog/digital LT/RT mode, gyro steering enable/invert and neutral calibration. Gyro steering requires a steering wheel in the active layout.
+- **Analog sticks:** centre mode, activation range, radial deadzone and response curve.
+- **About:** app and connected server versions, connection state, gamepad backend availability and a link to the project repository.
 
 ## Storage
 
-Layout data is local to the app's WebView origin. The keys used by 0.5.2-alpha are:
+Layout data is local to the app's WebView origin. The keys used by 0.6.0 are:
 
 | Key | Purpose |
 | --- | --- |
 | `touchbridge.profiles` | Custom layout registry: JSON array of `{ id, name }`, IDs matching `custom-[a-z0-9-]{1,56}`. |
 | `touchbridge.layout.<id>` | Stored controls for a preset or custom layout. |
 | `touchbridge.lastProfile` | Last selected layout ID. |
-| `touchbridge.theme` | `system`, `light` or `dark`. |
+| `touchbridge.theme` | `system`, `dark`, `amoled` or `light`. |
 | `touchbridge.haptics` | Button haptics on/off. |
-| `touchbridge.triggerMode` | `analog` or `digital`. |
+| `touchbridge.triggerMode` | `analog` or `digital`. Pedals remain analog. |
+| `touchbridge.gyro.enabled` | Whether gyro steering is enabled. |
+| `touchbridge.gyro.invert` | Whether gyro steering direction is inverted. |
 | `touchbridge.stick.centerMode` | `adaptive` or `fixed`. |
 | `touchbridge.stick.centerRange` | Activation range percentage. |
 | `touchbridge.stick.deadzone` | Radial deadzone percentage. |
@@ -182,7 +189,7 @@ The Android app remembers paired servers. The first connection uses a six-digit 
 - Layouts are stored per install; there is no cloud sync or cross-device transfer beyond JSON export/import.
 - Linux gamepad creation requires `/dev/uinput` and permission. The exposed device is a generic evdev gamepad.
 - Windows virtual gamepad output requires ViGEmBus; without it, mouse and keyboard remain available.
-- RTT measures network round trip, not one-way input-to-photon latency.
+- RTT measures network round trip, not one-way input-to-photon latency. p95 and jitter are diagnostic summaries, not guarantees of frame delivery.
 - The app targets API 35. Android 17's `ACCESS_LOCAL_NETWORK` runtime permission is not implemented yet.
 
 ## Android local-network permission note

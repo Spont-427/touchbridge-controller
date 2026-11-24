@@ -1,90 +1,45 @@
-# Validation record — 0.5.3-alpha
+# Validation record — 0.6.0
 
-Date: 2026-11-21. Android target: `versionCode` 11, `versionName` 0.5.3-alpha. This document records the 0.5.3-alpha source checks; previous emulator validation is retained below as the 0.5.2-alpha baseline.
+Date: 2026-11-24. Android target: `versionCode` 12, `versionName` 0.6.0. The uploaded archive contained the 0.6.0 feature source but its prebuilt APK still identified itself as 0.5.3-alpha (`versionCode` 11); that APK is not a 0.6.0 release artifact and must not be uploaded under a 0.6.0 filename.
 
-This record separates automated checks from interactive emulator testing. Passing checks do not prove physical-device stability.
+This record separates automated source checks from physical-device tests. Passing automated checks does not prove stable behaviour on every handset, desktop, game or network.
 
-## 0.5.3-alpha patch checks
+## 0.6.0 automated checks
 
-- The narrow-screen pairing CSS places `.pin-row .primary-button` in grid column 1 and `.pin-row .secondary-button` in grid column 2.
-- `internal/web/web/app.css` and `android-client/app/src/main/assets/controller/app.css` are byte-for-byte identical.
-- The service-worker cache is bumped to `touchbridge-shell-v8`, and the bundled asset query strings identify `0.5.3-alpha`.
-- A new APK was not built in this preparation environment because Android SDK 35 and Gradle are not installed. Build it on the established development machine to retain its existing debug signing key.
+- `gofmt -l .` — no unformatted Go source files.
+- `go test -race ./...` — passed for all Go packages.
+- `go vet ./...` — passed.
+- JavaScript syntax checks — `app.js`, `theme.js` and `gamepad-core.js` parse successfully with Node.js.
+- `node --test internal/web/web/gamepad-core.test.cjs` — 18 tests passed, including pedal pressure, steering-wheel mapping, gyro deadzone/clamping, wheel/pedal layout validation and large-control placement.
+- `bash -n Install-TouchBridge-Linux.sh scripts/*.sh` — passed.
+- Web DOM binding audit — 107 direct DOM references, no missing element IDs.
+- Shared Android assets — all eight controller assets are byte-for-byte identical to the desktop web UI (`index.html`, `app.css`, `app.js`, `theme.js`, `gamepad-core.js`, `manifest.webmanifest`, `icon.svg`, `sw.js`).
+- Protocol fuzz smoke test — `FuzzDecodeNeverPanics` passed with a one-second run.
 
-## 0.5.2-alpha baseline validation
+The web WebSocket fuzz smoke test exceeded the command time limit in this environment and is not recorded as passed. `govulncheck` and the GitHub Actions workflows have not been executed from this preparation workspace; CI is expected to run them on the pull request.
 
-### Automated checks
+## Feature-level tests present
 
-- `gofmt -l .` — no unformatted Go files in the 0.5.2 source tree.
-- `go test ./...` — passed for all Go packages after the final source changes.
-- `go test -race ./...` and `go vet ./...` — passed on this source line during the 0.5.1/0.5.2 work; the 0.5.2 changes are confined to web assets, Android host code and documentation.
-- JavaScript syntax — `app.js`, `gamepad-core.js`, `theme.js` and `sw.js` parse successfully with Deno.
-- HTML-to-JavaScript binding audit — 86 direct DOM ID references, no missing IDs.
-- CSS — 769 opening and 769 closing braces.
-- Shared Android assets — all eight bundled controller assets are byte-for-byte identical to `internal/web/web/` after `scripts/sync-android-assets.sh` (`index.html`, `app.css`, `app.js`, `theme.js`, `gamepad-core.js`, `manifest.webmanifest`, `icon.svg`, `sw.js`).
-- Android build — `./gradlew assembleDebug --no-daemon` passed and produced `android-client/app/build/outputs/apk/debug/app-debug.apk` (about 911 KiB).
-- Install — `adb install -r app-debug.apk` succeeded on the API 37 emulator.
+The controller-math test suite includes checks for:
 
-#### Not run
+- Digital/analog trigger handling and existing stick math.
+- Accelerator/brake pressure increasing toward the bottom of the pedal.
+- Large controls avoiding existing controls where practical.
+- Steering-wheel rotation mapping to the left-stick horizontal axis.
+- Gyro steering deadzone, direction and full-lock clamp.
+- Layout validation for a steering wheel and pedal controls.
 
-- `scripts/check.sh` could not run in full because the environment's Node installation is broken (`libsimdjson.so.36` missing). The individual JavaScript, DOM, asset-parity, CSS and Go checks above were run directly instead.
-- `node --test internal/web/web/gamepad-core.test.cjs` was therefore not executed for this build. The last recorded result on this source line was 13 passing tests.
-- `govulncheck`, CodeQL and the GitHub Actions workflows have not run in this environment. They run on push or schedule in CI.
-- No release-signed APK was produced; the validated artifact is debug-signed.
+These are deterministic logic tests. They do not simulate actual Android touch sampling, phone sensor behaviour, Bluetooth/network scheduling or the OS input stack.
 
-### Interactive emulator tests
+## Not verified in this workspace
 
-Device: Android emulator `Medium_Phone_API_37.0`, headless, API 37, 914 × 411 CSS viewport in landscape (2.625 device pixel ratio). Package `io.github.touchbridge.mobile`.
+- A rebuilt 0.6.0 Android APK. The APK in the uploaded archive is still version 0.5.3-alpha / versionCode 11; rebuild after the version bump.
+- A release-signed APK. Generate and back up the private signing keystore, then run `scripts/build-android-release.sh` on the release machine. The release workflow can attach a separate debug APK for testers.
+- Physical Android phone testing for wheel drag, gyro permission/calibration, sensor orientation, pedal touch tracking, haptic feel, display cutouts, long sessions and real Wi-Fi.
+- Physical Windows and Linux desktop testing for trigger axes/buttons, wheel/pedal input mapping, gamepad enumeration, reconnect and focus handling.
+- Testing with real racing games and their particular input mappings, Steam Input and anti-cheat software.
+- Windows ViGEmBus and Linux `/dev/uinput` behaviour on a range of machines, including sleep/resume and coexistence with other virtual controllers.
+- End-to-end latency, packet loss, multi-hour sessions and unstable networks.
+- `govulncheck`, CodeQL and GitHub Actions on the proposed PR.
 
-The following flows were exercised by a human-directed agent through the UI and the WebView DevTools socket:
-
-### Layout library and manager
-
-- Opened **Settings → Manage layouts**; presets showed Edit and Duplicate only.
-- Created **Elden Ring**; it appeared on the home library with generic artwork and `4 PRESETS · 1 CUSTOM`.
-- Duplicated it as **Elden Ring copy** with copied controls.
-- Opened the editor from the manager, added a D-pad set, and confirmed the control count increased from 16 to 20.
-- Pressed **Done**, returned to Manage layouts, renamed the layout to **Elden Ring 2**.
-- Deleted both custom layouts through the inline confirmation. The registry returned to `[]` and the library showed `4 PRESETS`.
-- Verified custom layouts and the active selection survived a force-stop and relaunch.
-- Deleted the active custom layout and confirmed the app fell back to Xbox-style and updated `touchbridge.lastProfile`.
-- Confirmed preset deletion is unavailable in the UI and rejected by `deleteLayout()`.
-- Reviewed the manage screen in both dark and light themes.
-
-### Editor
-
-- Verified the add menu contains **Single buttons** and **Button sets** groups.
-- Added a complete D-pad set; all four controls were placed in free space and selectable.
-- Confirmed empty-canvas taps clear the selection and hide the property panel.
-- Confirmed stick controls cannot be removed.
-
-### Navigation and themes
-
-- Verified there is no controller back chip in the DOM at runtime.
-- Pressed Android Back from the controller; the app returned to the portrait library and restored portrait system bars.
-- Switched System, Light and Dark themes; summary, settings, manager and editor surfaces updated and persisted across relaunch.
-- Captured screenshots for the library, manager, create form, delete confirmation, editor with the D-pad set, controller without a back chip, manager in light theme and final settings.
-
-### Haptics
-
-- With **Button haptics** on, a tap on the A button produced a new vibration request immediately:
-  - `usage: TOUCH`, `Prebaked=CLICK`, duration approximately 101–103 ms on the emulator HAL.
-  - The request was attributed to `io.github.touchbridge.mobile (uid=10235)`.
-- With haptics off, the same tap produced no new entry in `dumpsys vibrator_manager`.
-- Re-enabling the toggle and tapping produced a new click entry.
-- The previous build's 9 ms one-shot was also observable in the service log, but is below the perceptible threshold on many physical motors; 0.5.2 uses the predefined click waveform instead.
-- Long-press context menus on the controller surface are suppressed via `contextmenu` prevention.
-
-Haptics cannot be physically felt on a headless emulator. The check proves that an immediate request of the intended type reaches Android and that the toggle suppresses it; it does not prove the feel on a specific phone.
-
-## Not verified
-
-- Physical Android phone testing: motor feel, display cutouts, touch sampling, thermals, real Wi-Fi, Android 6–16 behaviour, biometric/Keystore edge cases.
-- Physical Windows and Linux desktops: discovery on real networks, firewall prompts, mouse/keyboard injection, gamepad enumeration, focus handling.
-- Real games and anti-cheat behavior.
-- Long sessions, reconnect under packet loss, multiple controllers, suspended apps and rotation edge cases.
-- End-to-end touch-to-PC latency and jitter.
-- Release signing, Play Store packaging or update migration from earlier versions.
-- CI results for this repository. The workflows are present, but they had not run from this workspace at the time of writing.
-
-Keep this release labeled alpha until at least one physical Android device and one physical desktop have completed the interactive checklist.
+Complete the physical Android and desktop checklist before publishing the stable release. If a critical input path has not been tested on hardware, publish a pre-release first rather than marking it stable.

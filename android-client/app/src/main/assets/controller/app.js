@@ -54,6 +54,14 @@
   const hapticsEnabled = $('hapticsEnabled');
   const triggerModeSelect = $('triggerModeSelect');
   const themeSelect = $('themeSelect');
+  const gyroSteeringEnabled = $('gyroSteeringEnabled');
+  const gyroInvert = $('gyroInvert');
+  const gyroCalibrateButton = $('gyroCalibrateButton');
+  const gyroStatus = $('gyroStatus');
+  const appVersionValue = $('appVersionValue');
+  const aboutServerVersion = $('aboutServerVersion');
+  const aboutConnectionState = $('aboutConnectionState');
+  const aboutGamepadState = $('aboutGamepadState');
   const profileGrid = $('profileGrid');
   const libraryCount = $('libraryCount');
   const layoutsScreen = $('layoutsScreen');
@@ -74,6 +82,10 @@
   const controllerScreen = $('controllerScreen');
   const editorScreen = $('editorScreen');
   const toolsScreen = $('toolsScreen');
+  const appearanceScreen = $('appearanceScreen');
+  const controlsScreen = $('controlsScreen');
+  const sticksScreen = $('sticksScreen');
+  const aboutScreen = $('aboutScreen');
 
   let socket = null;
   let authenticated = false;
@@ -116,6 +128,7 @@
   let currentScreen = 'home';
   let editorReturnScreen = 'home';
   let selectedServer = null;
+  let connectedServerVersion = '';
   let activeConnectionURL = '';
   let queuedServerSelection = null;
   let rememberedServers = [];
@@ -124,6 +137,13 @@
   let lastUsedServerId = '';
   let renamingLayoutId = null;
   let deletingLayoutId = null;
+  let wheelGesture = null;
+  let gyroListening = false;
+  let gyroNeutral = null;
+  let gyroLastTilt = 0;
+  let gyroFiltered = 0;
+  const GYRO_MAX_TILT = 28;
+  const WHEEL_MAX_ROTATION = Math.PI * 0.75;
 
   // Presets keep their hand-tuned art and names. Custom layouts are stored as
   // a small registry plus one layout blob per id under touchbridge.layout.<id>.
@@ -179,6 +199,7 @@
     if (devicesConnectionBadge) devicesConnectionBadge.textContent = online ? 'CONNECTED' : 'OFFLINE';
     if (homeDeviceSummary) homeDeviceSummary.textContent = online ? (selectedServer?.name || 'Computer connected') : (rememberedServers.length ? `${rememberedServers.length} remembered computer${rememberedServers.length === 1 ? '' : 's'}` : 'No PC connected');
     document.body.classList.toggle('is-connected', online);
+    updateAboutDiagnostics();
   }
 
   function setLatency(value) {
@@ -283,13 +304,19 @@
   }
 
   function applyThemePreference(mode) {
-    const value = mode === 'light' || mode === 'dark' ? mode : 'system';
+    const value = ['light', 'dark', 'amoled'].includes(mode) ? mode : 'system';
     safeStorageSet('touchbridge.theme', value);
     if (themeSelect) themeSelect.value = value;
     const resolved = window.TouchBridgeTheme
       ? window.TouchBridgeTheme.apply(value)
       : (value === 'light' ? 'light' : 'dark');
     document.documentElement.dataset.theme = resolved;
+  }
+
+  function updateAboutDiagnostics() {
+    if (aboutConnectionState) aboutConnectionState.textContent = authenticated ? 'Connected' : 'Disconnected';
+    if (aboutServerVersion) aboutServerVersion.textContent = authenticated ? (connectedServerVersion || 'Connected') : '—';
+    if (aboutGamepadState) aboutGamepadState.textContent = gamepadAvailable ? 'Available' : (authenticated ? 'Unavailable' : 'Unknown');
   }
 
   function mountGamepadStage(mountId) {
@@ -325,11 +352,16 @@
     controllerScreen.hidden = screen !== 'controller';
     editorScreen.hidden = screen !== 'editor';
     settingsScreen.hidden = screen !== 'settings';
+    appearanceScreen.hidden = screen !== 'appearance';
+    controlsScreen.hidden = screen !== 'controls';
+    sticksScreen.hidden = screen !== 'sticks';
+    aboutScreen.hidden = screen !== 'about';
     layoutsScreen.hidden = screen !== 'layouts';
     toolsScreen.hidden = screen !== 'tools';
     if (bottomNav) {
       bottomNav.hidden = screen === 'controller' || screen === 'editor';
-      const active = screen === 'tools' || screen === 'layouts' ? 'settings' : screen;
+      const settingsChildren = ['tools', 'layouts', 'appearance', 'controls', 'sticks', 'about'];
+      const active = settingsChildren.includes(screen) ? 'settings' : screen;
       bottomNav.querySelectorAll('[data-nav-screen]').forEach(button => {
         const selected = button.dataset.navScreen === active;
         button.classList.toggle('active', selected);
@@ -357,6 +389,7 @@
     }
     if (screen === 'devices') renderDeviceLists();
     if (screen === 'layouts') renderLayoutManager();
+    if (screen === 'about') updateAboutDiagnostics();
     if (screen === 'controller' || screen === 'editor') {
       updateProfileLabels();
       if (profileSelect) profileSelect.value = activeProfile;
@@ -413,8 +446,8 @@
         return true;
       }
       if (currentScreen === 'controller') { setScreen('home'); return true; }
-      if (currentScreen === 'layouts') { setScreen('settings'); return true; }
-      if (currentScreen === 'devices' || currentScreen === 'tools' || currentScreen === 'settings') { setScreen('home'); return true; }
+      if (['layouts', 'appearance', 'controls', 'sticks', 'about', 'tools'].includes(currentScreen)) { setScreen('settings'); return true; }
+      if (currentScreen === 'devices' || currentScreen === 'settings') { setScreen('home'); return true; }
       if (currentScreen === 'home') return false;
       return false;
     }
@@ -422,6 +455,14 @@
 
   $('homeDevicesButton').addEventListener('click', () => { setScreen('devices'); scanDevices(); });
   $('toolsBackButton').addEventListener('click', () => setScreen('settings'));
+  $('settingsAppearanceButton').addEventListener('click', () => setScreen('appearance'));
+  $('settingsControlsButton').addEventListener('click', () => setScreen('controls'));
+  $('settingsSticksButton').addEventListener('click', () => setScreen('sticks'));
+  $('settingsAboutButton').addEventListener('click', () => setScreen('about'));
+  $('appearanceBackButton').addEventListener('click', () => setScreen('settings'));
+  $('controlsBackButton').addEventListener('click', () => setScreen('settings'));
+  $('sticksBackButton').addEventListener('click', () => setScreen('settings'));
+  $('aboutBackButton').addEventListener('click', () => setScreen('settings'));
   $('scanButton').addEventListener('click', scanDevices);
   $('settingsToolsButton').addEventListener('click', () => setScreen('tools'));
   $('settingsLayoutsButton').addEventListener('click', () => {
@@ -699,6 +740,7 @@
         if (connectionTimeout) clearTimeout(connectionTimeout);
         connectionTimeout = 0;
         authenticated = true;
+        connectedServerVersion = String(data.server_version || '');
         pendingDX = pendingDY = 0;
         if (data.device_token && connectionServer) {
           connectionServer.serverId = data.server_id || connectionServer.serverId || '';
@@ -753,6 +795,7 @@
       connectionTimeout = 0;
       authenticated = false;
       gamepadAvailable = false;
+      connectedServerVersion = '';
       setGamepadAvailability(false, 'Connect a computer to send controller input.');
       if (heartbeatTimer) clearInterval(heartbeatTimer);
       if (latencyTimer) clearInterval(latencyTimer);
@@ -1270,7 +1313,19 @@
       option.textContent = label;
       groups.appendChild(option);
     }
-    addControlAction.append(singles, groups);
+    const racing = document.createElement('optgroup');
+    racing.label = 'Racing controls';
+    for (const [value, label] of [
+      ['wheel', 'Steering wheel (left stick)'],
+      ['pedal:RT', 'Accelerator pedal (analog RT)'],
+      ['pedal:LT', 'Brake pedal (analog LT)']
+    ]) {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = label;
+      racing.appendChild(option);
+    }
+    addControlAction.append(singles, groups, racing);
   }
   function updateEditorFields() {
     const control = selectedControl();
@@ -1291,7 +1346,9 @@
         const title = document.createElement('strong');
         title.textContent = item.label || item.id;
         const subtitle = document.createElement('small');
-        subtitle.textContent = item.kind === 'stick' ? `${item.side.toUpperCase()} STICK` : item.button;
+        subtitle.textContent = item.kind === 'stick'
+          ? `${item.side.toUpperCase()} STICK`
+          : item.kind === 'wheel' ? 'STEERING WHEEL' : (item.pedal ? `ANALOG ${item.button}` : item.button);
         button.append(title, subtitle);
         button.addEventListener('click', () => selectControl(item.id));
         controlList.append(button);
@@ -1342,10 +1399,27 @@
     gamepadStage.classList.toggle('editing', editMode);
     for (const control of layout) {
       const wrapper = document.createElement('div');
-      wrapper.className = `layout-control ${control.kind === 'stick' ? 'stick-control' : 'button-control'}`;
+      wrapper.className = `layout-control ${control.kind === 'stick' ? 'stick-control' : control.kind === 'wheel' ? 'wheel-control' : 'button-control'}`;
       wrapper.dataset.controlId = control.id;
       setControlPosition(control, wrapper);
-      if (control.kind === 'stick') {
+      if (control.kind === 'wheel') {
+        const face = document.createElement('div');
+        face.className = 'wheel-face';
+        const rim = document.createElement('div');
+        rim.className = 'wheel-rim';
+        const hub = document.createElement('div');
+        hub.className = 'wheel-hub';
+        const mark = document.createElement('div');
+        mark.className = 'wheel-mark';
+        const tag = document.createElement('div');
+        tag.className = 'stick-tag wheel-tag';
+        tag.textContent = control.label || 'WHEEL';
+        rim.append(hub, mark);
+        face.appendChild(rim);
+        face.appendChild(tag);
+        wrapper.appendChild(face);
+        wrapper._wheelParts = { face, rim, tag };
+      } else if (control.kind === 'stick') {
         const face = document.createElement('div');
         face.className = 'stick-face';
         const center = document.createElement('div');
@@ -1371,6 +1445,10 @@
         button.title = control.hint || `${control.label} · ${control.button}`;
         if (control.button.startsWith('DPAD_')) button.classList.add('dpad-button');
         if (control.button === 'LT' || control.button === 'RT' || control.button === 'LB' || control.button === 'RB') button.classList.add('trigger-button');
+        if (control.pedal) {
+          wrapper.classList.add('pedal-control');
+          button.classList.add('pedal-button');
+        }
         if (control.button === 'START' || control.button === 'BACK' || control.button === 'GUIDE') button.classList.add('small-action');
         wrapper.appendChild(button);
       }
@@ -1384,9 +1462,11 @@
       if (control.id === selectedControlId) wrapper.classList.add('selected');
     }
     updateEditorFields();
+    refreshGyroStatus();
   }
   function setGamepadAvailability(available, message) {
     gamepadAvailable = Boolean(available);
+    updateAboutDiagnostics();
     gamepadSupport.classList.toggle('available', gamepadAvailable);
     gamepadSupport.classList.toggle('unavailable', !gamepadAvailable && authenticated);
     if (gamepadAvailable) {
@@ -1432,16 +1512,32 @@
     gamepadDirty = true;
     scheduleGamepadFlush();
   }
+  function isTriggerAction(action) {
+    return action === 'LT' || action === 'RT';
+  }
+  function triggerValue(control, clientY, rect) {
+    return control.pedal
+      ? core.pedalPressure(clientY, rect.top, rect.height)
+      : core.triggerPressure(clientY, rect.top, rect.height);
+  }
   function rebuildGamepadButtons() {
     gamepadButtons.clear();
     gamepadState.left_trigger = 0;
     gamepadState.right_trigger = 0;
     for (const held of activeGamepadControls.values()) {
       const action = held.action;
-      if (action === 'LT' || action === 'RT') {
-        if (triggerModeSelect.value === 'digital') gamepadButtons.add(action);
-        else if (action === 'LT') gamepadState.left_trigger = Math.max(gamepadState.left_trigger, held.value);
-        else gamepadState.right_trigger = Math.max(gamepadState.right_trigger, held.value);
+      if (isTriggerAction(action)) {
+        if (held.analog) {
+          if (action === 'LT') gamepadState.left_trigger = Math.max(gamepadState.left_trigger, held.value);
+          else gamepadState.right_trigger = Math.max(gamepadState.right_trigger, held.value);
+        } else {
+          // Digital mode reports the button as well as full pressure. Some
+          // platforms (notably Linux evdev) expose LT/RT as both a button and
+          // an axis; sending only the button left the axis at zero in games.
+          gamepadButtons.add(action);
+          if (action === 'LT') gamepadState.left_trigger = 1;
+          else gamepadState.right_trigger = 1;
+        }
       } else gamepadButtons.add(action);
     }
     queueGamepadState();
@@ -1455,7 +1551,7 @@
       if (button) {
         button.classList.toggle('pressed', active.length > 0);
         if (button.dataset.action === 'LT' || button.dataset.action === 'RT') {
-          const pressure = triggerModeSelect.value === 'digital' && active.length ? 1 : active.reduce((max, item) => Math.max(max, item.value), 0);
+          const pressure = active.reduce((max, item) => Math.max(max, item.value), 0);
           button.style.setProperty('--trigger-pressure', `${pressure * 100}%`);
         }
       }
@@ -1465,6 +1561,9 @@
     stickGestures.clear();
     activeGamepadControls.clear();
     gamepadButtons.clear();
+    wheelGesture = null;
+    updateWheelVisual(0);
+    if (gamepadControls) gamepadControls.querySelectorAll('.active-wheel').forEach(node => node.classList.remove('active-wheel'));
     Object.assign(gamepadState, { left_x: 0, left_y: 0, right_x: 0, right_y: 0, left_trigger: 0, right_trigger: 0 });
     if (gamepadFrame) cancelAnimationFrame(gamepadFrame);
     if (gamepadRetryTimer) clearTimeout(gamepadRetryTimer);
@@ -1503,6 +1602,19 @@
     // Keep the controller tactile in offline preview mode. Input snapshots are
     // sent only when an authenticated server exposes a gamepad backend.
     wrapper.setPointerCapture(event.pointerId);
+    if (control.kind === 'wheel') {
+      const rect = wrapper.getBoundingClientRect();
+      wheelGesture = {
+        pointerId: event.pointerId,
+        controlId: control.id,
+        wrapper,
+        angle: Math.atan2(event.clientY - (rect.top + rect.height / 2), event.clientX - (rect.left + rect.width / 2)),
+        rotation: 0,
+        maxRotation: WHEEL_MAX_ROTATION
+      };
+      wrapper.classList.add('active-wheel');
+      return;
+    }
     if (control.kind === 'stick') {
       const rect = wrapper.getBoundingClientRect();
       const width = rect.width;
@@ -1532,13 +1644,26 @@
       updateStickGesture(control.side, event.clientX, event.clientY);
     } else {
       const rect = wrapper.getBoundingClientRect();
-      const isTrigger = control.button === 'LT' || control.button === 'RT';
-      const analog = isTrigger && triggerModeSelect.value === 'analog';
-      const value = analog ? core.triggerPressure(event.clientY, rect.top, rect.height) : 1;
-      activeGamepadControls.set(event.pointerId, { controlId: control.id, action: control.button, value });
+      const isTrigger = isTriggerAction(control.button);
+      const analog = isTrigger && (control.pedal || triggerModeSelect.value === 'analog');
+      const value = analog ? triggerValue(control, event.clientY, rect) : 1;
+      activeGamepadControls.set(event.pointerId, { controlId: control.id, action: control.button, value, analog });
       updateGamepadPressedClasses();
       rebuildGamepadButtons();
     }
+  }
+
+  function updateWheelVisual(rotation) {
+    const wheel = gamepadControls.querySelector('.wheel-control');
+    if (!wheel) return;
+    const rim = wheel.querySelector('.wheel-rim');
+    if (rim) rim.style.transform = `translate(-50%,-50%) rotate(${rotation * 180 / Math.PI}deg)`;
+  }
+
+  function setWheelAxis(axis) {
+    gamepadState.left_x = axis;
+    updateWheelVisual(axis * WHEEL_MAX_ROTATION);
+    queueGamepadState();
   }
   function updateStickGesture(side, clientX, clientY) {
     const gesture = stickGestures.get(side);
@@ -1574,12 +1699,25 @@
       setControlPosition(item, wrapper);
       return;
     }
-    if (control.kind === 'button') {
-      const held = activeGamepadControls.get(event.pointerId);
-      if (!held || (held.action !== 'LT' && held.action !== 'RT') || triggerModeSelect.value !== 'analog') return;
+    if (control.kind === 'wheel') {
+      if (!wheelGesture || wheelGesture.pointerId !== event.pointerId) return;
       event.preventDefault();
       const rect = wrapper.getBoundingClientRect();
-      held.value = core.triggerPressure(event.clientY, rect.top, rect.height);
+      const angle = Math.atan2(event.clientY - (rect.top + rect.height / 2), event.clientX - (rect.left + rect.width / 2));
+      let delta = angle - wheelGesture.angle;
+      if (delta > Math.PI) delta -= Math.PI * 2;
+      if (delta < -Math.PI) delta += Math.PI * 2;
+      wheelGesture.angle = angle;
+      wheelGesture.rotation = core.clamp(wheelGesture.rotation + delta, -wheelGesture.maxRotation, wheelGesture.maxRotation);
+      setWheelAxis(core.wheelAxis(wheelGesture.rotation, wheelGesture.maxRotation));
+      return;
+    }
+    if (control.kind === 'button') {
+      const held = activeGamepadControls.get(event.pointerId);
+      if (!held || !isTriggerAction(held.action) || !held.analog) return;
+      event.preventDefault();
+      const rect = wrapper.getBoundingClientRect();
+      held.value = triggerValue(control, event.clientY, rect);
       updateGamepadPressedClasses();
       rebuildGamepadButtons();
       return;
@@ -1595,6 +1733,14 @@
     if (layoutDrag && layoutDrag.pointerId === event.pointerId) {
       layoutDrag = null;
       saveLayout();
+      return;
+    }
+    if (control.kind === 'wheel') {
+      if (!wheelGesture || wheelGesture.pointerId !== event.pointerId) return;
+      wheelGesture.wrapper.classList.remove('active-wheel');
+      wheelGesture = null;
+      // A wheel self-centres when released, like a real steering wheel.
+      if (!stickGestures.has('left')) setWheelAxis(0);
       return;
     }
     if (control.kind === 'stick') {
@@ -1628,8 +1774,9 @@
       editorSnapButton.title = editorSnapEnabled ? 'Disable snap' : 'Enable snap';
     }
   }
-  function findOpenControlPosition() {
-    return core.findOpenPosition(layout);
+  function findOpenControlPosition(size) {
+    const rect = gamepadStage.getBoundingClientRect();
+    return core.findOpenPosition(layout, size, rect.width, rect.height);
   }
   function setEditorMode(enabled) {
     enabled = Boolean(enabled);
@@ -1689,6 +1836,7 @@
     const control = selectedControl();
     if (!control || control.kind !== 'button') return;
     control.button = controlAction.value;
+    if (control.pedal && !isTriggerAction(control.button)) delete control.pedal;
     saveLayout();
     renderGamepadLayout();
     selectControl(control.id);
@@ -1718,25 +1866,32 @@
   addControlButton.addEventListener('click', () => {
     const value = addControlAction.value || 'button:A';
     const isSet = value.startsWith('group:');
+    const isPedal = value.startsWith('pedal:');
+    const isWheel = value === 'wheel';
     const specs = isSet
       ? ADD_CLUSTERS[value.slice(6)]
-      : (() => {
-        const action = value.startsWith('button:') ? value.slice(7) : value;
-        return [{ button: action, label: BUTTON_LABELS[action] || action, dx: 0, dy: 0, size: 46 }];
-      })();
+      : isWheel
+        ? [{ wheel: true, label: 'WHEEL', dx: 0, dy: 0, size: 150 }]
+        : isPedal
+          ? [{ button: value.slice(6), label: value === 'pedal:RT' ? 'ACCEL' : 'BRAKE', pedal: true, dx: 0, dy: 0, size: 88 }]
+          : (() => {
+            const action = value.startsWith('button:') ? value.slice(7) : value;
+            return [{ button: action, label: BUTTON_LABELS[action] || action, dx: 0, dy: 0, size: 46 }];
+          })();
     if (!Array.isArray(specs) || !specs.length) return;
     const remaining = 40 - layout.length;
     if (specs.length > remaining) {
       editorStatus.textContent = `This layout has room for ${Math.max(0, remaining)} more control${remaining === 1 ? '' : 's'}. Remove some before adding a set.`;
       return;
     }
-    const position = findOpenControlPosition();
+    const position = findOpenControlPosition(Math.max(...specs.map(spec => spec.size || 46)));
     const added = [];
     for (const spec of specs) {
       const control = {
         id: `custom-${Date.now()}-${++customControlSequence}`,
-        kind: 'button',
-        button: spec.button,
+        kind: spec.wheel ? 'wheel' : 'button',
+        ...(spec.wheel ? {} : { button: spec.button }),
+        ...(spec.pedal ? { pedal: true } : {}),
         label: spec.label,
         x: core.clamp(position.x + spec.dx, 4, 96),
         y: core.clamp(position.y + spec.dy, 4, 96),
@@ -1855,12 +2010,20 @@
   hapticsEnabled.checked = safeStorageGet('touchbridge.haptics') !== 'false';
   const savedTheme = safeStorageGet('touchbridge.theme');
   if (themeSelect) {
-    themeSelect.value = savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : 'system';
+    themeSelect.value = ['light', 'dark', 'amoled'].includes(savedTheme) ? savedTheme : 'system';
     applyThemePreference(themeSelect.value);
     themeSelect.addEventListener('change', () => applyThemePreference(themeSelect.value));
   } else {
     applyThemePreference(savedTheme);
   }
+  const appVersion = window.TouchBridgeAndroid?.getAppVersion?.()
+    || document.querySelector('meta[name="touchbridge-version"]')?.content
+    || '0.6.0';
+  if (appVersionValue) appVersionValue.textContent = `Version ${appVersion}`;
+  $('openRepositoryButton')?.addEventListener('click', () => {
+    if (window.TouchBridgeAndroid?.openRepository) window.TouchBridgeAndroid.openRepository();
+    else window.open('https://github.com/Spont-427/touchbridge-controller', '_blank', 'noopener');
+  });
   const themeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
   if (themeQuery) {
     const onSchemeChange = () => {
@@ -1871,6 +2034,11 @@
   }
   const savedTriggerMode = safeStorageGet('touchbridge.triggerMode');
   triggerModeSelect.value = savedTriggerMode === 'digital' ? 'digital' : 'analog';
+  const savedGyro = safeStorageGet('touchbridge.gyro.enabled');
+  const savedGyroInvert = safeStorageGet('touchbridge.gyro.invert');
+  if (gyroInvert) gyroInvert.checked = savedGyroInvert === 'true';
+  refreshGyroStatus();
+  if (savedGyro === 'true') setGyroEnabled(true);
   hapticsEnabled.addEventListener('change', () => safeStorageSet('touchbridge.haptics', String(hapticsEnabled.checked)));
   triggerModeSelect.addEventListener('change', () => {
     safeStorageSet('touchbridge.triggerMode', triggerModeSelect.value);
@@ -1879,10 +2047,130 @@
     queueGamepadState();
   });
 
-  // The keyboard is intentionally still usable even if this PC has no virtual
-  // gamepad provider. Linux exposes a uinput gamepad when permissions permit;
-  // Windows support is capability-gated until a maintained open driver path is
-  // available and tested.
+  function gyroSupported() {
+    return typeof window.DeviceOrientationEvent !== 'undefined';
+  }
+
+  function currentScreenAngle() {
+    const angle = window.screen?.orientation?.angle;
+    if (Number.isFinite(angle)) return Number(angle);
+    const legacy = Number(window.orientation);
+    return Number.isFinite(legacy) ? legacy : 0;
+  }
+
+  function tiltDegrees(event) {
+    const beta = Number(event.beta);
+    const gamma = Number(event.gamma);
+    if (!Number.isFinite(beta) && !Number.isFinite(gamma)) return null;
+    const angle = ((currentScreenAngle() % 360) + 360) % 360;
+    if (angle === 90) return -beta;
+    if (angle === 270) return beta;
+    if (angle === 180) return -gamma;
+    return gamma;
+  }
+
+  function setGyroStatus(message) {
+    if (gyroStatus) gyroStatus.textContent = message;
+  }
+
+  function refreshGyroStatus() {
+    if (!gyroSteeringEnabled) return;
+    if (!gyroSupported()) {
+      gyroSteeringEnabled.checked = false;
+      gyroSteeringEnabled.disabled = true;
+      setGyroStatus('This device does not expose motion sensors to the controller.');
+      return;
+    }
+    if (!gyroSteeringEnabled.checked) {
+      setGyroStatus('Gyro steering is off. Add a steering wheel control to use it.');
+      return;
+    }
+    if (!layout.some(control => control.kind === 'wheel')) {
+      setGyroStatus('Enabled. Add a steering wheel to this layout to steer by tilting.');
+      return;
+    }
+    if (!gyroListening) {
+      setGyroStatus('Preparing the motion sensor…');
+      return;
+    }
+    setGyroStatus(gyroNeutral === null
+      ? 'Hold the phone in its level driving position to calibrate.'
+      : 'Gyro steering is active. Calibrate again if the neutral point drifts.');
+  }
+
+  function onDeviceOrientation(event) {
+    if (!gyroSteeringEnabled?.checked || currentScreen !== 'controller') return;
+    if (!layout.some(control => control.kind === 'wheel')) return;
+    if (wheelGesture || stickGestures.has('left')) return;
+    const tilt = tiltDegrees(event);
+    if (tilt === null) return;
+    if (gyroNeutral === null) {
+      gyroNeutral = tilt;
+      gyroFiltered = 0;
+      refreshGyroStatus();
+      return;
+    }
+    let delta = tilt - gyroNeutral;
+    if (gyroInvert?.checked) delta = -delta;
+    // A light low-pass filter avoids visible wheel jitter without adding lag.
+    gyroFiltered = gyroFiltered * 0.72 + delta * 0.28;
+    const axis = core ? core.steeringFromTilt(gyroFiltered, 0, GYRO_MAX_TILT, 1.5) : 0;
+    gamepadState.left_x = axis;
+    updateWheelVisual(axis * WHEEL_MAX_ROTATION);
+    queueGamepadState();
+  }
+
+  function attachGyro() {
+    if (gyroListening || !gyroSupported()) return;
+    window.addEventListener('deviceorientation', onDeviceOrientation);
+    gyroListening = true;
+    refreshGyroStatus();
+  }
+
+  function stopGyro() {
+    if (!gyroListening) return;
+    window.removeEventListener('deviceorientation', onDeviceOrientation);
+    gyroListening = false;
+    gyroNeutral = null;
+    gyroFiltered = 0;
+    if (gamepadState.left_x !== 0 && !stickGestures.has('left')) {
+      gamepadState.left_x = 0;
+      updateWheelVisual(0);
+      queueGamepadState();
+    }
+  }
+
+  function setGyroEnabled(enabled) {
+    if (gyroSteeringEnabled) gyroSteeringEnabled.checked = Boolean(enabled);
+    safeStorageSet('touchbridge.gyro.enabled', String(Boolean(enabled)));
+    if (!enabled) { stopGyro(); refreshGyroStatus(); return; }
+    if (!gyroSupported()) { safeStorageSet('touchbridge.gyro.enabled', 'false'); refreshGyroStatus(); return; }
+    const requestPermission = window.DeviceOrientationEvent?.requestPermission;
+    if (typeof requestPermission === 'function') {
+      Promise.resolve(requestPermission.call(window.DeviceOrientationEvent)).then(result => {
+        if (result === 'granted') attachGyro();
+        else { gyroSteeringEnabled.checked = false; safeStorageSet('touchbridge.gyro.enabled', 'false'); setGyroStatus('Motion access was denied. Allow motion access to use gyro steering.'); }
+      }).catch(() => {
+        gyroSteeringEnabled.checked = false;
+        safeStorageSet('touchbridge.gyro.enabled', 'false');
+        setGyroStatus('Motion access is unavailable on this device.');
+      });
+      return;
+    }
+    attachGyro();
+  }
+
+  gyroSteeringEnabled?.addEventListener('change', () => setGyroEnabled(gyroSteeringEnabled.checked));
+  gyroInvert?.addEventListener('change', () => safeStorageSet('touchbridge.gyro.invert', String(gyroInvert.checked)));
+  gyroCalibrateButton?.addEventListener('click', () => {
+    gyroNeutral = null;
+    gyroFiltered = 0;
+    setGyroStatus('Hold the phone in its level driving position to calibrate.');
+    if (gyroSteeringEnabled?.checked && !gyroListening) attachGyro();
+  });
+
+  // The keyboard remains usable even when this PC has no virtual gamepad
+  // provider. Linux uses uinput when permissions permit; Windows uses ViGEmBus.
   setGamepadAvailability(false, 'Connect to a PC to check virtual gamepad support. Mouse and keyboard remain available.');
 
   window.addEventListener('blur', () => {

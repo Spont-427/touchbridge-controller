@@ -132,12 +132,16 @@ func TestHandlerServesClient(t *testing.T) {
 
 func TestWebSocketAuthenticationAndInput(t *testing.T) {
 	backend := &testBackend{}
-	server := httptest.NewServer((&Server{PIN: "123456", PINExpires: time.Now().Add(time.Hour), Input: backend, Logger: log.New(io.Discard, "", 0)}).Handler())
+	server := httptest.NewServer((&Server{PIN: "123456", PINExpires: time.Now().Add(time.Hour), Version: "0.6.0", Input: backend, Logger: log.New(io.Discard, "", 0)}).Handler())
 	defer server.Close()
 	c := dialTestWS(t, server.URL, server.URL)
 	c.sendJSON(t, map[string]any{"type": "auth", "pin": "123456"})
-	if got := c.readJSON(t)["type"]; got != "auth_ok" {
-		t.Fatalf("auth response=%v", got)
+	reply := c.readJSON(t)
+	if reply["type"] != "auth_ok" {
+		t.Fatalf("auth response=%v", reply)
+	}
+	if reply["server_version"] != "0.6.0" {
+		t.Fatalf("server_version=%v, want 0.6.0", reply["server_version"])
 	}
 	c.sendJSON(t, map[string]any{"type": "mouse_move", "dx": 14, "dy": -3})
 	deadline := time.Now().Add(time.Second)

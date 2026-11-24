@@ -1,6 +1,6 @@
 # TouchBridge Android client
 
-This is the Android client for **TouchBridge 0.6.0**. Its controller interface is bundled inside the APK under `app/src/main/assets/controller/`, so the app can show the home screen, select profiles, edit layouts, preview controls and save preferences without a running desktop server.
+This is the Android client for **TouchBridge 0.7.0**. Its controller interface is bundled inside the APK under `app/src/main/assets/controller/`, so the app can show the home screen, select profiles, edit layouts, preview controls and save preferences without a running desktop server.
 
 ## Features
 
@@ -17,6 +17,8 @@ This is the Android client for **TouchBridge 0.6.0**. Its controller interface i
 - Optional gyro steering for wheel layouts, with neutral calibration, filtering, deadzone and direction inversion.
 - Digital triggers send both button state and full trigger pressure; the controller shows RTT with p95/jitter details.
 - Reorganized settings for Appearance, Controls & haptics, Analog sticks and About.
+- Connect up to four phones simultaneously, each with its own player badge and virtual gamepad slot.
+- Keep the display awake while the controller is open; the setting is enabled by default and can be changed in Controls & haptics.
 - Immediate button haptics using the platform click waveform, fired on pointer-down and gated by the Settings toggle. Sticks never vibrate.
 - No on-screen controller back chip; the Android system Back gesture leaves the controller and restores portrait mode.
 - Layout manager with create, duplicate, rename and inline-confirmed delete. Presets are protected from deletion.
@@ -28,7 +30,7 @@ Open this directory in Android Studio with Android SDK Platform 35, Build Tools 
 
 The shared web UI is copied from `../../internal/web/web/`. After editing those files, run `../../scripts/sync-android-assets.sh` from the repository root. `scripts/check.sh` verifies that the Android copy is up to date.
 
-The version is `0.6.0` (`versionCode` 12); `minSdk` is 23 and the project targets SDK 35. Android 17 (API 37) requires the `ACCESS_LOCAL_NETWORK` runtime permission for apps targeting API 37 or higher; do not raise the target SDK until this permission and its rationale/denial flow are implemented. Apps targeting 35 still use the legacy `INTERNET`-permission behaviour described by Android's [local network permission guide](https://developer.android.com/privacy-and-security/local-network-permission).
+The version is `0.7.0` (`versionCode` 13); `minSdk` is 23 and the project targets SDK 35. Android 17 (API 37) requires the `ACCESS_LOCAL_NETWORK` runtime permission for apps targeting API 37 or higher; do not raise the target SDK until this permission and its rationale/denial flow are implemented. Apps targeting 35 still use the legacy `INTERNET`-permission behaviour described by Android's [local network permission guide](https://developer.android.com/privacy-and-security/local-network-permission).
 
 ## Network permissions
 

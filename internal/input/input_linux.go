@@ -53,14 +53,18 @@ const (
 	btnDpadRight = 0x223
 )
 
+type linuxGamepad struct {
+	file  *os.File
+	ready bool
+	err   string
+	held  map[string]bool
+}
+
 type Linux struct {
-	file         *os.File
-	gamepadFile  *os.File
-	gamepadReady bool
-	gamepadErr   string
-	heldKeys     map[string]bool
-	heldBtns     map[string]bool
-	heldGamepad  map[string]bool
+	file     *os.File
+	gamepads [MaxGamepadSlots]*linuxGamepad
+	heldKeys map[string]bool
+	heldBtns map[string]bool
 }
 
 func New() (Backend, error) {
@@ -68,7 +72,7 @@ func New() (Backend, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open /dev/uinput: %w (load the uinput kernel module and grant access; see docs/linux-setup.md)", err)
 	}
-	l := &Linux{file: f, heldKeys: map[string]bool{}, heldBtns: map[string]bool{}, heldGamepad: map[string]bool{}}
+	l := &Linux{file: f, heldKeys: map[string]bool{}, heldBtns: map[string]bool{}}
 	fail := func(e error) (Backend, error) { _ = f.Close(); return nil, e }
 	if err := l.ioctl(uiSetEVBit, evKey); err != nil {
 		return fail(fmt.Errorf("enable EV_KEY: %w", err))
@@ -104,9 +108,13 @@ func New() (Backend, error) {
 		return fail(fmt.Errorf("create uinput device: %w", err))
 	}
 	// Gamepad creation is optional: mouse/keyboard remains usable on systems
-	// whose uinput policy permits only the primary virtual input device.
-	if err := l.createGamepad(); err != nil {
-		l.gamepadErr = err.Error()
+	// whose uinput policy permits only the primary virtual input device. The
+	// first pad is created eagerly as a capability probe; additional player
+	// pads are created lazily when their slot is used.
+	if gamepad, err := createLinuxGamepad(); err != nil {
+		l.gamepads[0] = &linuxGamepad{err: err.Error()}
+	} else {
+		l.gamepads[0] = gamepad
 	}
 	return l, nil
 }
@@ -156,8 +164,8 @@ func (l *Linux) writeEvents(events []linuxEvent) error {
 	return nil
 }
 
-func (l *Linux) writeGamepadEvents(events []linuxEvent) error {
-	if len(events) == 0 || l.gamepadFile == nil {
+func (l *Linux) writeGamepadEvents(file *os.File, events []linuxEvent) error {
+	if len(events) == 0 || file == nil {
 		return ErrUnsupported
 	}
 	const eventSize = 24 // Linux input_event layout on amd64/arm64.
@@ -173,7 +181,7 @@ func (l *Linux) writeGamepadEvents(events []linuxEvent) error {
 		binary.LittleEndian.PutUint16(buf[off+18:off+20], event.code)
 		binary.LittleEndian.PutUint32(buf[off+20:off+24], uint32(event.value))
 	}
-	n, err := l.gamepadFile.Write(buf)
+	n, err := file.Write(buf)
 	if err != nil {
 		return err
 	}
@@ -183,12 +191,12 @@ func (l *Linux) writeGamepadEvents(events []linuxEvent) error {
 	return nil
 }
 
-func (l *Linux) createGamepad() error {
+func createLinuxGamepad() (*linuxGamepad, error) {
 	f, err := os.OpenFile("/dev/uinput", os.O_WRONLY, 0)
 	if err != nil {
-		return fmt.Errorf("open uinput gamepad: %w", err)
+		return nil, fmt.Errorf("open uinput gamepad: %w", err)
 	}
-	failed := func(err error) error { _ = f.Close(); return err }
+	failed := func(err error) (*linuxGamepad, error) { _ = f.Close(); return nil, err }
 	ioctl := func(req uintptr, value int) error {
 		_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, f.Fd(), req, uintptr(value))
 		if errno != 0 {
@@ -235,25 +243,54 @@ func (l *Linux) createGamepad() error {
 	if err := ioctl(uiDevCreate, 0); err != nil {
 		return failed(fmt.Errorf("create virtual gamepad: %w", err))
 	}
-	l.gamepadFile = f
-	l.gamepadReady = true
-	return nil
+	return &linuxGamepad{file: f, ready: true, held: map[string]bool{}}, nil
 }
 
-func (l *Linux) GamepadAvailable() bool { return l.gamepadReady }
-func (l *Linux) GamepadStatus() string {
-	if l.gamepadReady {
-		return "Linux uinput virtual gamepad ready"
+func (l *Linux) gamepad(slot int) (*linuxGamepad, error) {
+	if slot < 0 || slot >= MaxGamepadSlots {
+		return nil, fmt.Errorf("gamepad slot %d out of range", slot)
 	}
-	if l.gamepadErr != "" {
-		return "Linux virtual gamepad unavailable: " + l.gamepadErr
+	if l.gamepads[slot] != nil {
+		if !l.gamepads[slot].ready {
+			return nil, ErrUnsupported
+		}
+		return l.gamepads[slot], nil
+	}
+	gamepad, err := createLinuxGamepad()
+	if err != nil {
+		gamepad = &linuxGamepad{err: err.Error()}
+	}
+	l.gamepads[slot] = gamepad
+	if !gamepad.ready {
+		return nil, err
+	}
+	return gamepad, nil
+}
+
+func (l *Linux) GamepadAvailable() bool {
+	return l.gamepads[0] != nil && l.gamepads[0].ready
+}
+
+func (l *Linux) GamepadSlotCount() int { return MaxGamepadSlots }
+
+func (l *Linux) GamepadStatus() string {
+	if l.GamepadAvailable() {
+		return "Linux uinput virtual gamepad ready (up to 4 players)"
+	}
+	if l.gamepads[0] != nil && l.gamepads[0].err != "" {
+		return "Linux virtual gamepad unavailable: " + l.gamepads[0].err
 	}
 	return "Linux virtual gamepad unavailable"
 }
 
 func (l *Linux) SetGamepadState(state GamepadState) error {
-	if !l.gamepadReady {
-		return ErrUnsupported
+	return l.SetGamepadStateSlot(0, state)
+}
+
+func (l *Linux) SetGamepadStateSlot(slot int, state GamepadState) error {
+	gamepad, err := l.gamepad(slot)
+	if err != nil {
+		return err
 	}
 	if err := ValidateGamepadState(state); err != nil {
 		return err
@@ -274,7 +311,7 @@ func (l *Linux) SetGamepadState(state GamepadState) error {
 	events := make([]linuxEvent, 0, len(axis)+len(buttonCodes)+1)
 	events = append(events, axis...)
 	for button, code := range buttonCodes {
-		if wanted[button] == l.heldGamepad[button] {
+		if wanted[button] == gamepad.held[button] {
 			continue
 		}
 		value := int32(0)
@@ -284,10 +321,10 @@ func (l *Linux) SetGamepadState(state GamepadState) error {
 		events = append(events, linuxEvent{typ: evKey, code: code, value: value})
 	}
 	events = append(events, syncEvent())
-	if err := l.writeGamepadEvents(events); err != nil {
+	if err := l.writeGamepadEvents(gamepad.file, events); err != nil {
 		return err
 	}
-	l.heldGamepad = wanted
+	gamepad.held = wanted
 	return nil
 }
 
@@ -301,11 +338,13 @@ func linuxGamepadButtonCodes() map[string]uint16 {
 	}
 }
 
-func (l *Linux) ResetGamepad() error {
-	if !l.gamepadReady {
+func (l *Linux) ResetGamepad() error { return l.ResetGamepadSlot(0) }
+
+func (l *Linux) ResetGamepadSlot(slot int) error {
+	if slot < 0 || slot >= MaxGamepadSlots || l.gamepads[slot] == nil || !l.gamepads[slot].ready {
 		return nil
 	}
-	return l.SetGamepadState(GamepadState{})
+	return l.SetGamepadStateSlot(slot, GamepadState{})
 }
 
 func syncEvent() linuxEvent { return linuxEvent{typ: evSyn} }
@@ -374,8 +413,10 @@ func (l *Linux) Key(key string, down bool) error {
 }
 func (l *Linux) ReleaseAll() error {
 	var first error
-	if err := l.ResetGamepad(); err != nil && first == nil {
-		first = err
+	for slot := range l.gamepads {
+		if err := l.ResetGamepadSlot(slot); err != nil && first == nil {
+			first = err
+		}
 	}
 	for k := range l.heldKeys {
 		if e := l.Key(k, false); e != nil && first == nil {
@@ -391,9 +432,12 @@ func (l *Linux) ReleaseAll() error {
 }
 func (l *Linux) Close() error {
 	_ = l.ReleaseAll()
-	if l.gamepadFile != nil {
-		_, _, _ = syscall.Syscall(syscall.SYS_IOCTL, l.gamepadFile.Fd(), uiDevDestroy, 0)
-		_ = l.gamepadFile.Close()
+	for slot, gamepad := range l.gamepads {
+		if gamepad != nil && gamepad.file != nil {
+			_, _, _ = syscall.Syscall(syscall.SYS_IOCTL, gamepad.file.Fd(), uiDevDestroy, 0)
+			_ = gamepad.file.Close()
+		}
+		l.gamepads[slot] = nil
 	}
 	_ = l.ioctl(uiDevDestroy, 0)
 	return l.file.Close()

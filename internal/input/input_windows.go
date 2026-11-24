@@ -36,7 +36,7 @@ type gamepadProvider interface {
 type Windows struct {
 	heldKeys   map[string]bool
 	heldBtns   map[string]bool
-	gamepad    gamepadProvider
+	gamepads   []gamepadProvider
 	gamepadErr error
 }
 
@@ -50,7 +50,7 @@ func New() (Backend, error) {
 		// A missing driver must not disable mouse and keyboard control.
 		w.gamepadErr = err
 	} else {
-		w.gamepad = gamepad
+		w.gamepads = []gamepadProvider{gamepad}
 	}
 	return w, nil
 }
@@ -141,8 +141,8 @@ func (w *Windows) Key(key string, down bool) error {
 }
 func (w *Windows) ReleaseAll() error {
 	var first error
-	if w.gamepad != nil {
-		if err := w.gamepad.ResetGamepad(); err != nil && first == nil {
+	for slot := range w.gamepads {
+		if err := w.ResetGamepadSlot(slot); err != nil && first == nil {
 			first = err
 		}
 	}
@@ -160,11 +160,14 @@ func (w *Windows) ReleaseAll() error {
 }
 func (w *Windows) Close() error {
 	first := w.ReleaseAll()
-	if w.gamepad != nil {
-		if err := w.gamepad.Close(); err != nil && first == nil {
-			first = err
+	for _, gamepad := range w.gamepads {
+		if gamepad != nil {
+			if err := gamepad.Close(); err != nil && first == nil {
+				first = err
+			}
 		}
 	}
+	w.gamepads = nil
 	return first
 }
 
@@ -187,12 +190,14 @@ var windowsVK = func() map[string]uint16 {
 // no public API for it. ViGEmBus is used when installed; without it, the
 // capability response advertises no gamepad and mouse/keyboard keep working.
 func (w *Windows) GamepadAvailable() bool {
-	return w.gamepad != nil && w.gamepad.GamepadAvailable()
+	return len(w.gamepads) > 0 && w.gamepads[0] != nil && w.gamepads[0].GamepadAvailable()
 }
 
+func (w *Windows) GamepadSlotCount() int { return MaxGamepadSlots }
+
 func (w *Windows) GamepadStatus() string {
-	if w.gamepad != nil {
-		return w.gamepad.GamepadStatus()
+	if len(w.gamepads) > 0 && w.gamepads[0] != nil {
+		return w.gamepads[0].GamepadStatus() + " (up to 4 players)"
 	}
 	if w.gamepadErr != nil && !errors.Is(w.gamepadErr, ErrUnsupported) {
 		return "Windows virtual gamepad unavailable (" + w.gamepadErr.Error() + "). Install ViGEmBus 1.22.0 to enable an Xbox 360-compatible controller; mouse and keyboard work without it."
@@ -200,16 +205,42 @@ func (w *Windows) GamepadStatus() string {
 	return "Windows virtual gamepad unavailable: install ViGEmBus 1.22.0 to enable an Xbox 360-compatible controller. Mouse and keyboard work without it."
 }
 
-func (w *Windows) SetGamepadState(state GamepadState) error {
-	if w.gamepad == nil {
-		return ErrUnsupported
+func (w *Windows) gamepadSlot(slot int) (gamepadProvider, error) {
+	if slot < 0 || slot >= MaxGamepadSlots {
+		return nil, ErrUnsupported
 	}
-	return w.gamepad.SetGamepadState(state)
+	for len(w.gamepads) <= slot {
+		w.gamepads = append(w.gamepads, nil)
+	}
+	if w.gamepads[slot] != nil {
+		return w.gamepads[slot], nil
+	}
+	gamepad, err := newViGEmProvider()
+	if err != nil {
+		w.gamepadErr = err
+		return nil, err
+	}
+	w.gamepads[slot] = gamepad
+	return gamepad, nil
 }
 
-func (w *Windows) ResetGamepad() error {
-	if w.gamepad == nil {
+func (w *Windows) SetGamepadState(state GamepadState) error {
+	return w.SetGamepadStateSlot(0, state)
+}
+
+func (w *Windows) SetGamepadStateSlot(slot int, state GamepadState) error {
+	gamepad, err := w.gamepadSlot(slot)
+	if err != nil {
+		return err
+	}
+	return gamepad.SetGamepadState(state)
+}
+
+func (w *Windows) ResetGamepad() error { return w.ResetGamepadSlot(0) }
+
+func (w *Windows) ResetGamepadSlot(slot int) error {
+	if slot < 0 || slot >= len(w.gamepads) || w.gamepads[slot] == nil {
 		return nil
 	}
-	return w.gamepad.ResetGamepad()
+	return w.gamepads[slot].ResetGamepad()
 }

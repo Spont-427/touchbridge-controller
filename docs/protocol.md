@@ -1,4 +1,4 @@
-# TouchBridge LAN protocol (0.6.0)
+# TouchBridge LAN protocol (0.7.0)
 
 TouchBridge uses a small JSON protocol over a persistent WebSocket connection. The default TCP listener is port `8765`.
 
@@ -26,13 +26,13 @@ The terminal displays a cryptographically generated six-digit PIN. It is valid f
 {"type":"auth","pin":"012345"}
 ```
 
-The server limits failed attempts to five per source IP per minute and forty total per minute. Only one controller can be active at a time. Authentication succeeds with:
+The server limits failed attempts to five per source IP per minute and forty total per minute. Up to four authenticated controllers may be connected at once; each receives the next free player slot. Authentication succeeds with:
 
 ```json
-{"type":"auth_ok","server_version":"0.6.0"}
+{"type":"auth_ok","server_version":"0.7.0","player":2,"player_index":1,"max_controllers":4}
 ```
 
-The `server_version` field identifies the connected desktop build; older clients may ignore it, and clients should tolerate its absence when connecting to older servers. The server then sends a `capabilities` message describing whether the selected desktop input backend exposes a virtual gamepad. Otherwise it sends `auth_error`, `rate_limited` or `controller_busy` and closes the connection. The PIN is a short local pairing code, not a replacement for encrypted transport; use only trusted private networks unless TLS is configured.
+`player` is one-based for display, `player_index` is the zero-based virtual-gamepad slot, and `max_controllers` is the server limit. Older servers omit these fields, so clients treat a missing player as 1 and a missing limit as 1. The `server_version` field identifies the connected desktop build; older clients may ignore it, and clients should tolerate its absence when connecting to older servers. The server then sends a `capabilities` message describing whether the selected desktop input backend exposes a virtual gamepad and repeating the player assignment. Otherwise it sends `auth_error`, `rate_limited` or `controller_busy` and closes the connection. `controller_busy` includes `max_controllers` and is only sent when every player slot is occupied. The PIN is a short local pairing code, not a replacement for encrypted transport; use only trusted private networks unless TLS is configured.
 
 ## Mouse and keyboard input
 
@@ -64,11 +64,11 @@ The controller sends complete state snapshots rather than individual axis deltas
 
 Stick axes are normalized to `[-1, 1]`; triggers are normalized to `[0, 1]`. `buttons` contains the currently held controls from the supported set `A`, `B`, `X`, `Y`, `LB`, `RB`, `BACK`, `START`, `GUIDE`, `LS`, `RS`, and `DPAD_UP`, `DPAD_DOWN`, `DPAD_LEFT`, `DPAD_RIGHT`. Values outside those ranges, non-finite numbers, unknown buttons and duplicate button names are rejected.
 
-Use `{"type":"gamepad_reset"}` to return all axes, triggers and buttons to neutral. A client disconnect and `release_all` also reset the virtual gamepad. Linux exposes an evdev-compatible virtual gamepad through `/dev/uinput` when the kernel module and permissions allow it. Windows exposes an Xbox 360-compatible controller through ViGEmBus when the driver is installed; without it, `capabilities.gamepad` is `false` and only mouse and keyboard input are accepted.
+Use `{"type":"gamepad_reset"}` to return all axes, triggers and buttons to neutral. A client disconnect and `release_all` also reset only that player's virtual gamepad and release that client's held keyboard and mouse controls. Keyboard keys and mouse buttons are shared desktop inputs: a key/button stays down until every session holding it has released it, so one player cannot release another player's hold. Each player's `gamepad_state` is written to its assigned slot. Linux exposes up to four evdev-compatible virtual gamepads through `/dev/uinput` when the kernel module and permissions allow it. Windows exposes up to four Xbox 360-compatible controllers through ViGEmBus when the driver is installed; without it, `capabilities.gamepad` is `false` and only mouse and keyboard input are accepted.
 
 ## Keepalive and latency probe
 
-The client sends `{"type":"keepalive"}` every 15 seconds; the server replies `{"type":"keepalive_ack"}`. If no message arrives for 45 seconds, the server closes the session. The server releases all held inputs when the controller disconnects or the idle timeout expires.
+The client sends `{"type":"keepalive"}` every 15 seconds; the server replies `{"type":"keepalive_ack"}`. If no message arrives for 45 seconds, the server closes that session. The server releases only that controller's held inputs when it disconnects or the idle timeout expires.
 
 For latency measurement, send `{"type":"latency_ping","timestamp":<client-monotonic-ms>}`. The server echoes the timestamp in `latency_pong`. The client calculates round-trip time locally and reports a rolling median, 95th percentile and jitter estimate. The timestamp is only used for measurement; clocks are not synchronized and this is not a one-way latency measurement.
 

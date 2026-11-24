@@ -22,7 +22,9 @@ Every proposed change must be reviewed and pass CI before merge. Security-sensit
 
 ## Input safety invariants
 
-- Only one authenticated controller may hold the connection slot.
+- Up to four authenticated controllers may hold player slots; a new connection is rejected only when all slots are occupied.
+- Each controller is scoped to one virtual-gamepad slot. Disconnecting one player resets only that slot and releases only that session's desktop input ownership.
+- Shared keyboard keys and mouse buttons remain down until their final owning session releases them.
 - Failed PIN attempts are rate-limited.
 - All remote input messages are size- and range-checked before injection.
 - Gamepad axes/triggers are finite and bounded; button names are allow-listed and duplicates rejected.

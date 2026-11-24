@@ -28,10 +28,13 @@ type Server struct {
 	IdleTimeout  time.Duration
 	Input        input.Backend
 	Logger       *log.Logger
-	active       atomic.Bool
 	closing      atomic.Bool
 	guard        authGuard
 	pinMu        sync.Mutex
+	inputMu      sync.Mutex
+	inputOwners  *inputOwnership
+	slotsMu      sync.Mutex
+	slots        [input.MaxGamepadSlots]bool
 	wsMu         sync.Mutex
 	wsConns      map[*wsConn]struct{}
 	wsWG         sync.WaitGroup
@@ -171,20 +174,40 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 		s.Logger.Printf("rejected unauthenticated controller")
 		return
 	}
-	// Reserve the controller slot only after PIN authentication. Otherwise an
-	// unauthenticated client could occupy the sole slot for the 10-second auth
-	// timeout and block a legitimate controller on the LAN.
-	if !s.active.CompareAndSwap(false, true) {
-		_ = c.writeFrame(1, []byte(`{"type":"controller_busy"}`))
+	// Reserve a controller slot only after authentication. Otherwise an
+	// unauthenticated client could occupy a player slot during the 10-second
+	// auth timeout and block a legitimate controller on the LAN.
+	limit := s.controllerLimit()
+	slot, ok := s.acquireControllerSlot(limit)
+	if !ok {
+		busy, _ := json.Marshal(map[string]any{"type": "controller_busy", "max_controllers": limit})
+		_ = c.writeFrame(1, busy)
+		s.Logger.Printf("rejected controller: all %d player slots are in use", limit)
 		return
 	}
-	defer func() { _ = s.Input.ReleaseAll(); s.active.Store(false) }()
+	s.inputMu.Lock()
+	if s.inputOwners == nil {
+		s.inputOwners = newInputOwnership(s.Input)
+	}
+	session := newControllerSession(s.Input, slot, s.inputOwners)
+	s.inputMu.Unlock()
+	defer func() {
+		s.inputMu.Lock()
+		if err := session.ReleaseAll(); err != nil {
+			s.Logger.Printf("could not release all input from player %d: %v", slot+1, err)
+		}
+		s.inputMu.Unlock()
+		s.releaseControllerSlot(slot)
+	}()
 	_ = c.conn.SetReadDeadline(time.Time{})
 	version := s.Version
 	if version == "" {
 		version = "unknown"
 	}
-	authReply := map[string]any{"type": "auth_ok", "server_version": version}
+	authReply := map[string]any{
+		"type": "auth_ok", "server_version": version,
+		"player": slot + 1, "player_index": slot, "max_controllers": limit,
+	}
 	if s.TrustStore != nil {
 		authReply["server_id"] = s.TrustStore.ServerID()
 	}
@@ -206,6 +229,9 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 	gamepadAvailable := false
 	gamepadStatus := "Virtual gamepad is not available on this platform. Mouse and keyboard remain available."
 	gamepadModel := "standard-gamepad"
+	// Lazy per-player gamepad creation mutates backend state, so capability
+	// probes must share the same lock as input handling.
+	s.inputMu.Lock()
 	if gamepad, ok := s.Input.(input.GamepadBackend); ok {
 		gamepadAvailable = gamepad.GamepadAvailable()
 	}
@@ -214,17 +240,19 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 			gamepadStatus = status
 		}
 	}
+	s.inputMu.Unlock()
 	capabilityMessage, _ := json.Marshal(map[string]any{
 		"type": "capabilities", "gamepad": gamepadAvailable,
 		"gamepad_model": gamepadModel, "gamepad_status": gamepadStatus,
-		"latency_probe": true,
+		"latency_probe": true, "player": slot + 1,
+		"player_index": slot, "max_controllers": limit,
 	})
 	if err := c.writeFrame(1, capabilityMessage); err != nil {
 		return
 	}
 	remote := r.RemoteAddr
-	s.Logger.Printf("controller connected: %s", remote)
-	defer s.Logger.Printf("controller disconnected: %s", remote)
+	s.Logger.Printf("controller connected: %s (player %d/%d)", remote, slot+1, limit)
+	defer s.Logger.Printf("controller disconnected: %s (player %d/%d)", remote, slot+1, limit)
 	idleTimeout := s.IdleTimeout
 	if idleTimeout <= 0 {
 		idleTimeout = 45 * time.Second
@@ -263,12 +291,48 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 				}
 				continue
 			}
-			if err = protocol.Apply(m, s.Input); err != nil {
-				s.Logger.Printf("ignored input: %v", err)
+			s.inputMu.Lock()
+			err = protocol.Apply(m, session)
+			s.inputMu.Unlock()
+			if err != nil {
+				s.Logger.Printf("ignored input from player %d: %v", slot+1, err)
 			}
 		default:
 			return
 		}
+	}
+}
+
+func (s *Server) controllerLimit() int {
+	limit := 1
+	if multi, ok := s.Input.(input.GamepadSlotBackend); ok {
+		if count := multi.GamepadSlotCount(); count > 0 {
+			limit = count
+		}
+	}
+	if limit > input.MaxGamepadSlots {
+		limit = input.MaxGamepadSlots
+	}
+	return limit
+}
+
+func (s *Server) acquireControllerSlot(limit int) (int, bool) {
+	s.slotsMu.Lock()
+	defer s.slotsMu.Unlock()
+	for slot := 0; slot < limit && slot < len(s.slots); slot++ {
+		if !s.slots[slot] {
+			s.slots[slot] = true
+			return slot, true
+		}
+	}
+	return 0, false
+}
+
+func (s *Server) releaseControllerSlot(slot int) {
+	s.slotsMu.Lock()
+	defer s.slotsMu.Unlock()
+	if slot >= 0 && slot < len(s.slots) {
+		s.slots[slot] = false
 	}
 }
 

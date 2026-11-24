@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
   <meta name="theme-color" content="#0b0e13">
-  <script src="/theme.js?v=0.6.0"></script>
+  <script src="/theme.js?v=0.7.0"></script>
   <meta name="description" content="A customizable landscape game controller for Windows and Linux, with mouse and keyboard tools.">
-  <meta name="touchbridge-version" content="0.6.0">
+  <meta name="touchbridge-version" content="0.7.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss: http: https:; object-src 'none'; base-uri 'none';">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/app.css?v=0.6.0">
+  <link rel="stylesheet" href="/app.css?v=0.7.0">
   <title>TouchBridge</title>
 </head>
 <body>
@@ -52,6 +52,7 @@
 
     <section id="controllerScreen" class="screen controller-screen" hidden>
       <div class="play-hud" aria-label="Connection status">
+        <span id="playerBadge" class="player-badge" hidden>P1</span>
         <button id="latencyBadge" class="ping-indicator" type="button" title="Network round-trip time" aria-label="Network latency">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h3l2-5 4 10 2-5h7"/></svg>
           <span id="latencyValue">— ms</span>
@@ -139,6 +140,7 @@
       <section class="settings-group">
         <h3>Feedback</h3>
         <label class="settings-row" for="hapticsEnabled"><span><strong>Button haptics</strong><small>Vibrate briefly when a button is pressed</small></span><input id="hapticsEnabled" class="toggle-input" type="checkbox" checked></label>
+        <label class="settings-row" for="keepScreenOn"><span><strong>Keep screen on</strong><small>Prevents the phone sleeping while the controller is open</small></span><input id="keepScreenOn" class="toggle-input" type="checkbox" checked></label>
       </section>
       <section class="settings-group">
         <h3>Triggers</h3>
@@ -169,7 +171,7 @@
       <header class="screen-header"><button id="aboutBackButton" class="text-button" type="button">← Settings</button><div><span class="eyebrow">ABOUT</span><h2>TouchBridge</h2></div></header>
       <section class="about-card">
         <div class="about-mark" aria-hidden="true"><span></span><span></span></div>
-        <div><strong>TouchBridge</strong><span id="appVersionValue" class="about-version">Version 0.6.0</span></div>
+        <div><strong>TouchBridge</strong><span id="appVersionValue" class="about-version">Version 0.7.0</span></div>
       </section>
       <section class="settings-group">
         <h3>Project</h3>
@@ -211,7 +213,7 @@
     <button type="button" class="bottom-nav-item" data-nav-screen="devices"><span class="bottom-nav-icon">▣</span><span>Computers</span></button>
     <button type="button" class="bottom-nav-item" data-nav-screen="settings"><span class="bottom-nav-icon">⚙</span><span>Settings</span></button>
   </nav>
-  <script src="/gamepad-core.js?v=0.6.0" defer></script>
-  <script src="/app.js?v=0.6.0" defer></script>
+  <script src="/gamepad-core.js?v=0.7.0" defer></script>
+  <script src="/app.js?v=0.7.0" defer></script>
 </body>
 </html>

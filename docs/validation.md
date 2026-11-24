@@ -1,45 +1,51 @@
-# Validation record — 0.6.0
+# Validation record — 0.7.0
 
-Date: 2026-11-24. Android target: `versionCode` 12, `versionName` 0.6.0. The uploaded archive contained the 0.6.0 feature source but its prebuilt APK still identified itself as 0.5.3-alpha (`versionCode` 11); that APK is not a 0.6.0 release artifact and must not be uploaded under a 0.6.0 filename.
+Date: 2026-11-24. Android target: `versionCode` 13, `versionName` 0.7.0. Desktop server version: 0.7.0.
 
 This record separates automated source checks from physical-device tests. Passing automated checks does not prove stable behaviour on every handset, desktop, game or network.
 
-## 0.6.0 automated checks
+## 0.7.0 automated checks
 
 - `gofmt -l .` — no unformatted Go source files.
 - `go test -race ./...` — passed for all Go packages.
 - `go vet ./...` — passed.
 - JavaScript syntax checks — `app.js`, `theme.js` and `gamepad-core.js` parse successfully with Node.js.
-- `node --test internal/web/web/gamepad-core.test.cjs` — 18 tests passed, including pedal pressure, steering-wheel mapping, gyro deadzone/clamping, wheel/pedal layout validation and large-control placement.
+- `node --test internal/web/web/gamepad-core.test.cjs` — 18 tests passed.
 - `bash -n Install-TouchBridge-Linux.sh scripts/*.sh` — passed.
-- Web DOM binding audit — 107 direct DOM references, no missing element IDs.
+- Web DOM binding audit — 109 direct references, no missing element IDs.
 - Shared Android assets — all eight controller assets are byte-for-byte identical to the desktop web UI (`index.html`, `app.css`, `app.js`, `theme.js`, `gamepad-core.js`, `manifest.webmanifest`, `icon.svg`, `sw.js`).
-- Protocol fuzz smoke test — `FuzzDecodeNeverPanics` passed with a one-second run.
+- Linux amd64, Linux arm64 and Windows amd64 desktop cross-compilation — passed.
 
-The web WebSocket fuzz smoke test exceeded the command time limit in this environment and is not recorded as passed. `govulncheck` and the GitHub Actions workflows have not been executed from this preparation workspace; CI is expected to run them on the pull request.
+The one-second protocol fuzz smoke test passed. The WebSocket parser fuzz smoke test did not finish within the workspace time limit and is not marked as passed. `govulncheck` is expected to run in GitHub Actions. The Android Gradle build was not run in this preparation workspace; build the debug and stable APKs on the Android release machine or rely on the PR CI debug-build job, then verify the stable APK locally.
 
-## Feature-level tests present
+## Multiplayer regression coverage
 
-The controller-math test suite includes checks for:
+The Go tests cover:
 
-- Digital/analog trigger handling and existing stick math.
-- Accelerator/brake pressure increasing toward the bottom of the pedal.
-- Large controls avoiding existing controls where practical.
-- Steering-wheel rotation mapping to the left-stick horizontal axis.
-- Gyro steering deadzone, direction and full-lock clamp.
-- Layout validation for a steering wheel and pedal controls.
+- Distinct player slots and correct per-slot gamepad state.
+- Four simultaneous authenticated controllers and rejection of the fifth.
+- Reuse of a player slot after disconnect.
+- Resetting only the disconnecting player's gamepad.
+- Shared keyboard and mouse-button ownership: a shared input remains held until its final owning session releases it.
+- Independent mock gamepad slots and reset behaviour.
 
-These are deterministic logic tests. They do not simulate actual Android touch sampling, phone sensor behaviour, Bluetooth/network scheduling or the OS input stack.
+These tests do not create actual Linux uinput devices or Windows ViGEmBus controllers.
 
-## Not verified in this workspace
+## Screen-awake behaviour
 
-- A rebuilt 0.6.0 Android APK. The APK in the uploaded archive is still version 0.5.3-alpha / versionCode 11; rebuild after the version bump.
-- A release-signed APK. Generate and back up the private signing keystore, then run `scripts/build-android-release.sh` on the release machine. The release workflow can attach a separate debug APK for testers.
-- Physical Android phone testing for wheel drag, gyro permission/calibration, sensor orientation, pedal touch tracking, haptic feel, display cutouts, long sessions and real Wi-Fi.
-- Physical Windows and Linux desktop testing for trigger axes/buttons, wheel/pedal input mapping, gamepad enumeration, reconnect and focus handling.
-- Testing with real racing games and their particular input mappings, Steam Input and anti-cheat software.
-- Windows ViGEmBus and Linux `/dev/uinput` behaviour on a range of machines, including sleep/resume and coexistence with other virtual controllers.
-- End-to-end latency, packet loss, multi-hour sessions and unstable networks.
-- `govulncheck`, CodeQL and GitHub Actions on the proposed PR.
+The UI test environment verifies DOM references and asset parity, but the `FLAG_KEEP_SCREEN_ON` bridge requires an Android device for end-to-end validation. Confirm the phone stays awake while the controller screen is open by default, turns the flag off when the setting is disabled or the user leaves the controller, and clears the flag when the activity is destroyed.
 
-Complete the physical Android and desktop checklist before publishing the stable release. If a critical input path has not been tested on hardware, publish a pre-release first rather than marking it stable.
+## Release artifact status
+
+The uploaded project contained a prebuilt debug APK from v0.6.0 (`versionCode` 12). It is excluded from the 0.7.0 PR-ready source archive and must not be renamed or uploaded as a 0.7.0 build. Create the stable `TouchBridge-0.7.0.apk` using the same private release keystore and alias that signed v0.6.0. The release workflow automatically attaches `TouchBridge-0.7.0-debug.apk` and the desktop packages; upload the signed stable APK manually.
+
+## Physical-device validation required
+
+- Four simultaneous Android phones, P1–P4 assignment, fifth-client rejection and freed-slot reuse.
+- Four independent gamepads on Linux and Windows, including slot-specific reset on disconnect.
+- Two players holding the same keyboard key or mouse button, then disconnecting one player without releasing the other player's hold.
+- Player badge, status text, reconnect and idle-timeout behaviour.
+- Keep-screen-on default, setting persistence, screen navigation, background/foreground and activity destruction.
+- Long-running controller sessions, Wi-Fi interruptions, sleep/resume and actual target games.
+
+Complete this checklist before publishing v0.7.0 as stable. If a core multiplayer path has not been exercised on real machines, publish a pre-release first instead of calling it stable.

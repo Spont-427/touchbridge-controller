@@ -4,7 +4,7 @@
 
 - Android Studio with Android SDK Platform 35 and Android SDK Build Tools 36.0.0.
 - JDK 17 (Android Studio's embedded JBR 17 is suitable).
-- The project uses Android Gradle Plugin 9.5.2 and the Gradle 9.6.0 wrapper.
+- Android Gradle Plugin 9.5.2 and the Gradle 9.6.0 wrapper.
 
 ## Debug APK (testing)
 
@@ -14,27 +14,39 @@ From the repository root:
 ./scripts/build-android-debug.sh
 ```
 
-The script runs `assembleDebug`, checks that the Gradle `versionName` matches `VERSION`, and copies the APK to `dist/TouchBridge-0.6.0-debug.apk`.
+The script runs `assembleDebug`, checks that the Gradle `versionName` matches `VERSION`, and copies the APK to `dist/TouchBridge-0.7.0-debug.apk`.
 
-A debug APK is signed with the Android debug key and has WebView debugging enabled. It is useful for testers, but it is not the recommended stable download.
+A debug APK is signed with the Android debug key and may expose WebView debugging. It is for testers and troubleshooting, not the recommended stable download.
 
 ## Stable signed APK
 
-Create a release keystore once and keep it private. Do not put it in the repository, a cloud-synced public folder or a GitHub issue. Keep at least one encrypted offline backup: losing the key means you cannot sign compatible updates for existing stable installations.
+**Use the same private release keystore that signed v0.6.0. Do not generate a new key for this update.** Android uses the signing certificate to decide whether an APK can update an installed app. A different key will prevent in-place updates.
 
-For example, create a key outside the repository:
+Keep the keystore outside the repository, protect it with a strong password, and maintain encrypted offline backups. Never commit the keystore or passwords to GitHub.
 
-```sh
-mkdir -p "$HOME/.keys"
-keytool -genkeypair -v \
-  -keystore "$HOME/.keys/touchbridge-release.jks" \
-  -alias touchbridge \
-  -keyalg RSA -keysize 4096 -validity 10000
+The release script expects these environment variables:
+
+- `TOUCHBRIDGE_RELEASE_KEYSTORE` — path to the existing `.jks` file.
+- `TOUCHBRIDGE_RELEASE_KEY_ALIAS` — `touchbridge` unless you created a different alias.
+- `TOUCHBRIDGE_RELEASE_STORE_PASSWORD` — keystore password.
+- `TOUCHBRIDGE_RELEASE_KEY_PASSWORD` — private-key password.
+
+Example for Fish shell:
+
+```fish
+set -gx TOUCHBRIDGE_RELEASE_KEYSTORE "$HOME/.keys/touchbridge-release.jks"
+set -gx TOUCHBRIDGE_RELEASE_KEY_ALIAS "touchbridge"
+read -s -P "Keystore password: " TOUCHBRIDGE_RELEASE_STORE_PASSWORD
+set -gx TOUCHBRIDGE_RELEASE_STORE_PASSWORD "$TOUCHBRIDGE_RELEASE_STORE_PASSWORD"
+echo
+read -s -P "Key password: " TOUCHBRIDGE_RELEASE_KEY_PASSWORD
+set -gx TOUCHBRIDGE_RELEASE_KEY_PASSWORD "$TOUCHBRIDGE_RELEASE_KEY_PASSWORD"
+echo
 ```
 
-Set the path and alias, then enter the passwords without putting them in shell history:
+Example for Bash:
 
-```sh
+```bash
 export TOUCHBRIDGE_RELEASE_KEYSTORE="$HOME/.keys/touchbridge-release.jks"
 export TOUCHBRIDGE_RELEASE_KEY_ALIAS="touchbridge"
 read -rsp "Keystore password: " TOUCHBRIDGE_RELEASE_STORE_PASSWORD; echo
@@ -43,27 +55,27 @@ read -rsp "Key password: " TOUCHBRIDGE_RELEASE_KEY_PASSWORD; echo
 export TOUCHBRIDGE_RELEASE_KEY_PASSWORD
 ```
 
-Make sure `ANDROID_SDK_ROOT` points to your Android SDK (usually `"$HOME/Android/Sdk"`). Build and sign:
+Make sure `ANDROID_SDK_ROOT` points to your Android SDK (usually `"$HOME/Android/Sdk"`). Set JDK 17 as the Gradle JDK and run:
 
 ```sh
 ./scripts/build-android-release.sh
 ```
 
-The script runs `assembleRelease`, aligns the unsigned APK, signs it using `apksigner`, verifies the signature and writes `dist/TouchBridge-0.6.0.apk` with a SHA-256 checksum. The signing passwords are read from environment variables; the script does not print them.
+The script runs `assembleRelease`, aligns the unsigned APK, signs it with `apksigner`, verifies the signature and writes `dist/TouchBridge-0.7.0.apk` with a SHA-256 checksum.
 
-Upload both `TouchBridge-0.6.0.apk` and `TouchBridge-0.6.0-debug.apk` to the GitHub release if you want to provide a stable build and a separate tester build. The README links point to those exact release asset names.
+Upload `TouchBridge-0.7.0.apk` manually to the GitHub release. The release workflow automatically attaches `TouchBridge-0.7.0-debug.apk` and the Windows/Linux packages.
 
 ## Android Studio
 
 1. Open the `android-client` directory as a project.
 2. Select JDK 17 under **Settings → Build Tools → Gradle → Gradle JDK**.
 3. In **Tools → SDK Manager**, install Android 15 / API 35 and Android SDK Build Tools 36.0.0.
-4. Allow Gradle sync to finish.
-5. For a test build, choose **Build → Build Bundle(s) / APK(s) → Build APK(s)**. For the stable build, use the signed release script above after creating the keystore.
+4. Allow Gradle Sync to finish.
+5. For a test build, choose **Build → Build Bundle(s) / APK(s) → Build APK(s)**. For the stable build, use the signed release script above with the existing release keystore.
 
-## Updating from the alpha debug APK
+## Updating from v0.6.0 stable
 
-The stable APK is signed with your private release key, not the publicly known Android debug key used for development builds. Android treats those as different signing identities, so the first stable install cannot update an existing alpha debug install in place. Export custom layouts to JSON, then uninstall the alpha app before installing the stable APK. Uninstalling also clears app-local preferences, remembered computers and trusted pairing credentials, so configure preferences and pair the PC again after installation. Keep using the same private release key for every future stable update.
+The v0.6.0 stable APK was signed with the project's private release key. Build v0.7.0 using that exact same keystore and alias; users can then update in place without uninstalling or losing app data. Do not use a debug APK as the stable release.
 
 ## App architecture
 

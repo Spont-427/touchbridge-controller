@@ -1,6 +1,6 @@
 # Security notes
 
-TouchBridge is an early-alpha LAN input-control application. Do not expose it to the public internet.
+TouchBridge is a LAN input-control application that injects controller, keyboard and mouse input into the active desktop session. Do not expose it to the public internet.
 
 - Default HTTP/WebSocket traffic is unencrypted. The six-digit PIN is visible to anyone able to sniff local traffic. Use only trusted private networks unless TLS is configured with a browser-trusted certificate.
 - Android encrypts trusted-server bearer tokens at rest with an Android Keystore AES-GCM key; the server stores only token hashes. Default HTTP/WebSocket transport remains unencrypted, so tokens can still be observed in transit on an untrusted LAN.

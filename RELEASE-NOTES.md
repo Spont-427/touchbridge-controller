@@ -1,35 +1,44 @@
-# TouchBridge 0.5.3-alpha
+# TouchBridge 0.6.0
 
-This alpha adds optional Windows virtual gamepad output and fixes a narrow-screen Android pairing layout issue.
+TouchBridge 0.6.0 adds racing-style controls, gyro steering, clearer connection diagnostics and a redesigned settings area.
 
 ## Highlights
 
-### Windows virtual gamepad
+### Triggers and pedals
 
-- Add an optional Xbox 360-compatible virtual controller through ViGEmBus 1.22.0. Games that use XInput can detect it when the driver is installed.
-- Create the virtual controller on first gamepad input, reset it on disconnect and unplug it when the server shuts down.
-- Keep the desktop server unprivileged. Only the optional driver and firewall setup requires administrator approval.
-- Add `Setup-TouchBridge-Windows.bat` to download the pinned ViGEmBus installer, verify its SHA-256 checksum, install it and add private-network firewall rules for TCP 8765 and UDP 8766.
-- Without ViGEmBus, Windows mouse and keyboard input continue to work and the server reports that gamepad output is unavailable.
+- Digital LT/RT now send both their button state and full trigger axis pressure so Linux evdev and virtual-gamepad backends receive consistent input.
+- Add analog accelerator and brake pedals mapped to RT and LT. Pressure increases toward the bottom of each pedal.
 
-### Android pairing fix
+### Steering wheel and gyro
 
-- Fix the PIN pairing row on narrow screens. The Pair device and Disconnect buttons now occupy separate grid columns, preventing the disabled Disconnect button from overlapping or intercepting taps on Pair device.
+- Add a draggable steering-wheel control that maps rotation to the left stick's horizontal axis and returns to neutral on release.
+- Add optional gyro steering for layouts with a steering wheel. The feature supports neutral calibration, low-pass filtering, a deadzone and direction inversion.
+
+### Latency and appearance
+
+- Display rolling median network RTT in the controller. The indicator details include p95 and jitter.
+- Add System, Dark, AMOLED black and Light themes. Dark uses a neutral `#0f141b` background rather than pure black.
+- Split settings into Appearance, Controls & haptics, Analog sticks and About. About reports app/server versions, connection state, gamepad backend status and the project link.
+
+### Layout editor
+
+- Improve size-aware placement for large controls such as steering wheels and pedals, reducing overlap and keeping them within the visible canvas where possible.
 
 ## Downloads
 
-- **Android:** `TouchBridge-0.5.3-alpha-debug.apk` — compiled on the developer's established release machine, debug build for testing (not a Play Store release). Its signing certificate matches the previous alpha APK. The APK is attached separately to the GitHub release; generated APKs are not committed to the source repository.
-- **Windows x64:** desktop package is attached by the GitHub `Release downloads` workflow.
-- **Linux x86_64 / ARM64:** desktop packages are attached by the GitHub `Release downloads` workflow.
+The v0.6.0 release should include:
 
-## Platform support
+- **Android stable:** `TouchBridge-0.6.0.apk` — signed with the project's private release key. This is the recommended Android download.
+- **Android debug:** `TouchBridge-0.6.0-debug.apk` — debug-signed and intended for testing/troubleshooting only; the workflow attaches it automatically.
+- **Windows x64:** attached by the `Release downloads` GitHub Actions workflow.
+- **Linux x86_64 / ARM64:** attached by the `Release downloads` GitHub Actions workflow.
 
-- **Android:** Android 6.0 or newer; `versionCode` 11, `versionName` 0.5.3-alpha.
-- **Windows x64:** mouse and keyboard out of the box; Xbox 360-compatible virtual gamepad when ViGEmBus 1.22.0 is installed.
-- **Linux x86_64 / ARM64:** mouse, keyboard and generic virtual gamepad through `/dev/uinput`, subject to kernel support and permissions.
+Do not publish the currently uploaded `0.5.3-alpha` APK under a `0.6.0` filename. Rebuild after the version bump and verify the embedded version name is `0.6.0` and `versionCode` is 12.
 
-## Validation and limitations
+## Upgrade note
 
-The pairing CSS fix is present in both the desktop web UI and the Android-bundled UI; the asset copies are checked for byte-for-byte parity. Existing automated Go and controller UI tests remain part of CI. The new release APK must be built from this version on the developer's established Android build machine. Physical Android hardware, physical Windows/Linux input injection, real games, anti-cheat compatibility, long sessions and unstable networks still require testing.
+The first stable APK uses a private release signing key, which differs from the Android debug key used by previous alpha APKs. Android will not install it over an alpha debug build. Export any custom layouts, then uninstall the previous debug-signed app and install the stable APK. Uninstalling also clears app-local preferences, remembered computers and trusted pairing credentials, so users must configure preferences and pair their PC again. Later stable updates can be installed in place as long as the same release key is retained.
 
-Windows virtual gamepad output depends on the third-party ViGEmBus driver. ViGEmBus is not bundled with TouchBridge. The default desktop HTTP/WebSocket transport is unencrypted; use a trusted private network or configure TLS, and never expose the server directly to the public internet.
+## Validation boundary
+
+The source-level automated checks are recorded in [docs/validation.md](docs/validation.md). They do not replace hands-on validation of the new pedals, steering wheel and gyro on a physical Android phone and the target desktop input backends. Complete the physical-device checklist before marking the GitHub release as stable.

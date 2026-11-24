@@ -106,7 +106,7 @@ class MainActivity : Activity() {
             setSupportMultipleWindows(false)
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             cacheMode = WebSettings.LOAD_DEFAULT
-            userAgentString = "$userAgentString TouchBridgeAndroid/0.5.1"
+            userAgentString = "$userAgentString TouchBridgeAndroid/${appVersion()}"
         }
         view.addJavascriptInterface(AndroidBridge(), "TouchBridgeAndroid")
         view.webChromeClient = object : WebChromeClient() {
@@ -296,6 +296,20 @@ class MainActivity : Activity() {
         }
 
         @JavascriptInterface
+        fun getAppVersion(): String = appVersion()
+
+        @JavascriptInterface
+        fun openRepository() {
+            mainHandler.post {
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Spont-427/touchbridge-controller")))
+                } catch (_: Exception) {
+                    Toast.makeText(this@MainActivity, "No browser is available to open the repository.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        @JavascriptInterface
         fun performHapticFeedback() {
             try {
                 // Prefer the platform's tuned click waveform. A 9 ms raw one-shot
@@ -351,6 +365,13 @@ class MainActivity : Activity() {
             }
             return true
         }
+    }
+
+    private fun appVersion(): String = try {
+        @Suppress("DEPRECATION")
+        packageManager.getPackageInfo(packageName, 0).versionName ?: "0.0.0"
+    } catch (_: Exception) {
+        "0.0.0"
     }
 
     private fun isAppAssetUri(uri: android.net.Uri): Boolean {

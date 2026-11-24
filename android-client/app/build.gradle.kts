@@ -1,6 +1,5 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
 }
 
 android {
@@ -11,8 +10,8 @@ android {
         applicationId = "io.github.touchbridge.mobile"
         minSdk = 23
         targetSdk = 35
-        versionCode = 11
-        versionName = "0.5.3-alpha"
+        versionCode = 12
+        versionName = "0.6.0"
     }
 
     // Keep Java and Kotlin bytecode targets aligned.
@@ -21,7 +20,9 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
     }
 }

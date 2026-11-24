@@ -16,3 +16,8 @@
 Thumbs.db
 *.swp
 *~
+
+# Android signing material (never commit release credentials)
+*.jks
+*.keystore
+/android-client/keystore.properties

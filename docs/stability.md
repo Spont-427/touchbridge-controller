@@ -13,7 +13,7 @@ Run `./scripts/check.sh` locally for the same deterministic test, static-analysi
 - JavaScript syntax and pure controller-math tests under Node.js.
 - Installer/build shell syntax checks.
 - Linux amd64/arm64 and Windows amd64 cross-compilation.
-- Android debug APK build using JDK 17, Android SDK 35 and Gradle 8.9.
+- Android debug APK build using JDK 17, Android SDK Platform 35, Build Tools 36.0.0 and Gradle 9.6.0 (AGP 9.5.2).
 - CodeQL static analysis for Go and JavaScript/TypeScript.
 - `govulncheck` from the Go project for reachable known Go vulnerabilities.
 - Dependabot pull requests for Go modules, GitHub Actions and Gradle build tooling. The Gradle action uses its basic open-source cache provider.

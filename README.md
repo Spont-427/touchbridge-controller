@@ -1,130 +1,140 @@
 # TouchBridge
 
+TouchBridge turns an Android phone into a customizable controller for a Windows or Linux PC over your local network.
+
 [GitHub repository](https://github.com/Spont-427/touchbridge-controller) · [All releases](https://github.com/Spont-427/touchbridge-controller/releases)
 
-TouchBridge lets you use an Android phone as a controller for a Windows or Linux PC over your local network.
-
-**Current version:** `0.5.3-alpha` · **Status:** Alpha
+**Version prepared:** `0.6.0` · **Release status:** preparing the first stable release
 
 ## Screenshots
 
-**Controller layout (landscape)**
+**Controller layout**
 
 <p align="center">
-  <img src="docs/screenshots/controller-landscape.jpg" alt="TouchBridge controller layout with sticks, D-pad, face buttons and triggers" width="100%">
+  <img src="docs/screenshots/controller-landscape.jpg" alt="TouchBridge controller with sticks, D-pad and buttons" width="100%">
 </p>
 
-**Android app**
+**Layout library**
 
-<table>
-  <tr>
-    <th align="center">Layout library</th>
-    <th align="center">Settings</th>
-  </tr>
-  <tr>
-    <td align="center"><img src="docs/screenshots/layout-library.jpg" alt="TouchBridge layout library showing the available controller presets" width="260"></td>
-    <td align="center"><img src="docs/screenshots/settings.jpg" alt="TouchBridge settings for theme, haptics, triggers and analog sticks" width="260"></td>
-  </tr>
-</table>
+<p align="center">
+  <img src="docs/screenshots/layout-library.jpg" alt="TouchBridge Android layout library" width="420">
+</p>
 
-## Download TouchBridge
+## Download
 
-You need two parts: the Android app on your phone and the desktop server on your PC. Download both from the links below. You do not need to clone this repository, install Go, or compile the project.
+You need the Android app on your phone and the desktop server on your PC. Download both from the release assets. You do not need to clone this repository or compile the project.
 
-### 1. Android app
+### Android
 
-[**Download TouchBridge for Android (APK)**](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.5.3-alpha/TouchBridge-0.5.3-alpha-debug.apk)
+For normal use, install the **signed stable APK**:
 
-1. Download the APK on your Android phone.
-2. Open it from your Downloads notification or Downloads folder.
+[**Download TouchBridge 0.6.0 for Android**](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.6.0/TouchBridge-0.6.0.apk)
+
+A separate debug build is provided for testers and troubleshooting:
+
+[Download the TouchBridge 0.6.0 debug APK](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.6.0/TouchBridge-0.6.0-debug.apk)
+
+The debug APK is debug-signed and may expose WebView debugging. It is intended for testers and troubleshooting, not normal stable use. GitHub Actions creates it on a temporary runner, so a later debug build may have a different signing key and may require uninstalling the earlier test build. Only install APKs downloaded from the official TouchBridge Releases page. These versioned links become available when the `v0.6.0` release and matching APK assets are published.
+
+To install an APK:
+
+1. Download it on your Android phone.
+2. Open it from the Downloads notification or Downloads folder.
 3. Tap **Install**, then **Open**.
-4. Android may ask you to allow your browser or file manager to install apps from that source. Allow it for the app you are using, finish the installation, and turn the permission off again afterwards if you prefer.
+4. If Android asks, allow your browser or file manager to install apps from that source. You can turn that permission off again after installation.
 
-This is an alpha debug build for testing, not a Play Store release. It may contain bugs. Only install APKs downloaded from the official TouchBridge Releases page.
+**Updating from an earlier alpha:** the stable APK is signed with the project's private release key, which differs from the Android debug key used by the alpha builds. Android will not install it over a debug-signed alpha. Export any custom layouts you want to keep, then uninstall the old alpha app before installing the stable APK. Uninstalling also clears app-local preferences, remembered computers and trusted pairing credentials, so you will need to configure your preferences and pair your PC again. Later stable updates can be installed in place as long as the same release key is used.
 
-### 2. Desktop server (Windows or Linux)
+### Desktop server
 
 Choose the download for your PC:
 
-| Your PC | Download | How to start |
+| PC | Download | Start it |
 |---|---|---|
-| Windows x64 (Intel/AMD) | [**TouchBridge for Windows x64 (.zip)**](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.5.3-alpha/TouchBridge-Windows-x64.zip) | Extract the ZIP, optionally run `Setup-TouchBridge-Windows.bat` once, then double-click `Start-TouchBridge.bat`. |
-| Linux, 64-bit Intel/AMD | [**TouchBridge for Linux x86_64 (.tar.gz)**](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.5.3-alpha/TouchBridge-Linux-x86_64.tar.gz) | Extract the archive and run `./Install-TouchBridge-Linux.sh` in a terminal. |
-| Linux, ARM64 | [**TouchBridge for Linux ARM64 (.tar.gz)**](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.5.3-alpha/TouchBridge-Linux-ARM64.tar.gz) | Extract the archive and run `./Install-TouchBridge-Linux.sh` in a terminal. |
+| Windows x64 (Intel/AMD) | [TouchBridge for Windows (.zip)](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.6.0/TouchBridge-Windows-x64.zip) | Extract the ZIP and double-click `Start-TouchBridge.bat`. Run `Setup-TouchBridge-Windows.bat` once if you want virtual gamepad support. |
+| Linux x86_64 | [TouchBridge for Linux x86_64 (.tar.gz)](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.6.0/TouchBridge-Linux-x86_64.tar.gz) | Extract the archive and run `./Install-TouchBridge-Linux.sh` in a terminal. |
+| Linux ARM64 | [TouchBridge for Linux ARM64 (.tar.gz)](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.6.0/TouchBridge-Linux-ARM64.tar.gz) | Extract the archive and run `./Install-TouchBridge-Linux.sh` in a terminal. |
 
-**Windows:** Extract the ZIP and double-click `Start-TouchBridge.bat`. Keep the server window open while using TouchBridge; the six-digit pairing PIN appears there. If Windows Firewall asks, allow TouchBridge on **Private networks only**. Because the executable is not code-signed, Windows may show a SmartScreen warning; only run it if you downloaded it from the official TouchBridge release. Mouse and keyboard input work out of the box. For gamepad output, run `Setup-TouchBridge-Windows.bat` once: it installs [ViGEmBus 1.22.0](https://github.com/nefarius/ViGEmBus/releases/tag/v1.22.0) after verifying its SHA-256, and adds private-network firewall rules. See [Windows gamepad](docs/windows-gamepad.md). The TouchBridge server itself never asks for administrator rights.
+The `Release downloads` GitHub Actions workflow builds and attaches the Windows and Linux packages plus the Android debug APK when a GitHub Release is published. Build the signed stable APK on your own release machine with `scripts/build-android-release.sh`, then upload `TouchBridge-0.6.0.apk` to the same release.
 
-**Linux:** The installer asks for administrator permission to configure `/dev/uinput` and install the server. It then starts TouchBridge and displays the pairing PIN. See [Linux setup](docs/linux-setup.md) for details.
+### Windows virtual gamepad
 
-### 3. Windows gamepad (optional)
+Windows mouse and keyboard input work without extra software. Xbox 360-compatible virtual gamepad output requires the optional ViGEmBus 1.22.0 driver:
 
-Windows has no built-in API for creating a virtual gamepad, so controller output needs the third-party ViGEmBus driver. Mouse and keyboard input work without it.
+1. Extract the Windows ZIP.
+2. Double-click `Setup-TouchBridge-Windows.bat` and approve the Windows administrator prompt. The script downloads the pinned official driver, verifies its SHA-256 checksum and configures private-network firewall rules.
+3. Start TouchBridge with `Start-TouchBridge.bat`.
+4. Keep the server window open. It displays the six-digit pairing PIN.
 
-1. Double-click `Setup-TouchBridge-Windows.bat` from the extracted ZIP. Windows will show a UAC prompt. The script downloads ViGEmBus 1.22.0 from the official release, verifies its SHA-256 checksum, installs it, and adds private-network firewall rules for TCP 8765 and UDP 8766. Restart Windows if the installer asks.
-2. Double-click `Start-TouchBridge.bat` as usual. The first gamepad input from a paired phone creates an Xbox 360-compatible controller.
-3. Verify it in **Control Panel → Set up USB game controllers** (or run `joy.cpl`). Games that use XInput will see it as a normal controller.
+The TouchBridge server itself runs without administrator rights. See [Windows gamepad setup](docs/windows-gamepad.md).
 
-The setup script is rerunnable and skips anything already present. The TouchBridge server still runs unprivileged; only the setup script's driver and firewall changes request administrator rights. Without ViGEmBus, the `capabilities` response reports no gamepad backend and the app stays in mouse/keyboard mode. To install the driver yourself instead, use the [ViGEmBus 1.22.0 release](https://github.com/nefarius/ViGEmBus/releases/tag/v1.22.0). See [Windows gamepad](docs/windows-gamepad.md) for driver caveats and uninstall steps.
+### Linux virtual gamepad
 
-**Release downloads:** When a GitHub Release is published, the `Release downloads` workflow automatically builds and attaches the Windows and Linux packages. They appear under that release's **Assets** after the workflow finishes. The Android APK is built on the developer's release machine and attached separately. From the repository root, run `./scripts/build-android-release.sh`; it creates `dist/TouchBridge-0.5.3-alpha-debug.apk`. Build on the same machine as the previous alpha APK to preserve the debug signing key and allow existing installations to update without losing app data. See [Android APK build instructions](android-client/BUILD-APK.md).
+Linux exposes a generic virtual gamepad through `/dev/uinput`. The installer configures the required device permissions. See [Linux setup](docs/linux-setup.md).
 
 ## Connect your phone to your PC
 
-1. Start the desktop server on your PC using the instructions above.
-2. Connect your phone and PC to the same trusted local Wi-Fi network.
-3. Open TouchBridge on your phone and go to **Computers**.
-4. Tap **Find computers** and select your PC. You can enter the PC address manually if it is not found.
-5. Enter the six-digit pairing PIN shown by the desktop server.
+1. Start the desktop server on your PC.
+2. Connect the phone and PC to the same trusted Wi-Fi network.
+3. Open TouchBridge on the phone and select **Computers**.
+4. Tap **Find computers** and select your PC. You can enter its address manually if it is not found.
+5. Enter the six-digit PIN shown by the desktop server.
 
-The server must remain running while you use the phone as a controller.
+Keep the server running while using the phone as a controller.
 
 ## Features
 
 - Customizable controller layouts with two analog sticks, a D-pad, buttons and triggers.
-- Create, edit, duplicate, import and export layouts on Android.
-- Offline layout editing and controller preview.
-- Automatic PC discovery or manual server address entry.
-- PIN pairing and trusted reconnection.
-- Linux support for mouse, keyboard and a generic virtual gamepad.
-- Windows support for mouse and keyboard, plus an Xbox 360-compatible (XInput) virtual gamepad when ViGEmBus is installed.
+- Analog accelerator and brake pedals mapped to RT and LT.
+- A draggable steering wheel mapped to the left stick's horizontal axis.
+- Optional gyro steering for layouts that contain a steering wheel, with neutral calibration, filtering, deadzone and inversion.
+- Digital and analog trigger modes. Digital LT/RT send both the button and full trigger pressure.
+- Live network round-trip time with p95 and jitter details.
+- Layout creation, editing, duplication, import and export.
+- Size-aware placement for large controls to reduce overlap and keep controls on-screen.
+- Four themes: System, Dark, AMOLED black and Light.
+- Settings pages for Appearance, Controls & haptics, Analog sticks and About.
+- PIN pairing, trusted reconnection and automatic PC discovery.
+- Linux mouse, keyboard and virtual gamepad support; Windows mouse and keyboard plus optional XInput gamepad support.
 
 ## Platform support
 
 - **Android:** Android 6.0 or newer.
 - **Linux:** mouse, keyboard and generic virtual gamepad through `/dev/uinput`, subject to kernel support and permissions.
-- **Windows:** mouse and keyboard out of the box; an Xbox 360-compatible virtual gamepad through ViGEmBus when the driver is installed.
+- **Windows:** mouse and keyboard out of the box; Xbox 360-compatible virtual gamepad through ViGEmBus 1.22.0 when installed.
 
 ## Build from source
 
-These steps are for developers or users who want to build the project themselves. Most users should use the downloads above instead.
+Most users should use the downloads above. These steps are for developers.
 
-### Android app
+### Android
 
-Requirements: JDK 17 and Android SDK 35.
+Requirements: JDK 17, Android SDK Platform 35, and Android SDK Build Tools 36.0.0. The project uses Android Gradle Plugin 9.5.2 and the Gradle 9.6.0 wrapper.
+
+Build a debug APK for testing:
 
 ```sh
-cd android-client
-./gradlew assembleDebug
+./scripts/build-android-debug.sh
 ```
 
-The debug APK is created at:
+Build a signed stable APK after creating your private release keystore and setting the environment variables described in [Android APK build instructions](android-client/BUILD-APK.md):
 
-```text
-android-client/app/build/outputs/apk/debug/app-debug.apk
+```sh
+./scripts/build-android-release.sh
 ```
+
+The scripts write the APKs to `dist/`. Do not commit generated APKs or signing keys.
 
 ### Desktop server
 
 Requirement: Go 1.23 or newer.
-
-Build and run for your current platform:
 
 ```sh
 go build -o touchbridge ./cmd/touchbridge
 ./touchbridge
 ```
 
-To build the Windows and Linux release packages locally:
+Build the Windows and Linux packages locally:
 
 ```sh
 ./scripts/package-release.sh
@@ -134,9 +144,7 @@ The packages are created in `dist/`.
 
 ## Security
 
-The default connection is not encrypted. Use TouchBridge only on a trusted private network unless you configure TLS. Do not expose its ports directly to the public internet.
-
-Windows gamepad output depends on the third-party ViGEmBus kernel driver. TouchBridge does not bundle it; the optional setup script downloads the pinned official release, verifies its SHA-256, and runs it only after you approve the UAC prompt. Install it only from the official release linked above.
+The default HTTP/WebSocket connection is not encrypted. Use TouchBridge only on a trusted private network unless you configure TLS. Do not expose its ports directly to the public internet. Windows virtual gamepad output uses the third-party ViGEmBus driver; see the [security notes](SECURITY.md).
 
 ## Documentation
 
@@ -147,6 +155,7 @@ Windows gamepad output depends on the third-party ViGEmBus kernel driver. TouchB
 - [Validation record](docs/validation.md)
 - [Security notes](SECURITY.md)
 - [Changelog](CHANGELOG.md)
+- [Release notes](RELEASE-NOTES.md)
 
 ## License
 

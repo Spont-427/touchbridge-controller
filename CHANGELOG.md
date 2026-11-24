@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.6.0 — 2026-11-24 — wheel controls, pedals and settings refresh
+
+- Fix digital LT/RT handling by sending both the trigger button and full axis pressure, including for Linux evdev/gamepad backends.
+- Show rolling median round-trip time beside the controller connection; expose p95 latency and jitter in the indicator details.
+- Add analog accelerator and brake pedals mapped to RT and LT. Pedal pressure increases as the finger moves toward the bottom of the pedal.
+- Add a draggable steering-wheel control mapped to `left_x`; the wheel returns to centre when released.
+- Add optional gyro steering for layouts containing a wheel, with neutral calibration, filtering, deadzone and direction inversion.
+- Replace the theme choices with System, Dark, AMOLED black and Light. Dark now uses a neutral `#0f141b` palette.
+- Reorganize settings into Appearance, Controls & haptics, Analog sticks and About, including app/server versions, connection status, repository link and gamepad backend status.
+- Include the desktop server version in the successful pairing response so the Android About screen can report the connected build.
+- Improve layout placement for large controls so new wheels and pedals avoid existing controls and remain within the controller canvas where space permits.
+- Add regression coverage for pedal pressure, wheel mapping, gyro steering and large-control placement.
+- Bump Android and desktop version to `0.6.0` (`versionCode` 12) and the service-worker shell cache to v9.
+
 ## 0.5.3-alpha — 2026-11-21 — Windows virtual gamepad and Android pairing fix
 
 - Add an optional Windows virtual gamepad backend using ViGEmBus. When the driver is installed, TouchBridge presents an Xbox 360-compatible controller through XInput; mouse and keyboard control is unaffected when it is not.

@@ -56,6 +56,30 @@
     return clamp(1 - y / height, 0, 1);
   }
 
+  // Pedals press downward: the bottom of the travel is full throttle/braking.
+  function pedalPressure(clientY, rectTop, height) {
+    return 1 - triggerPressure(clientY, rectTop, height);
+  }
+
+  // A steering wheel maps rotation around its centre onto the left stick's
+  // horizontal axis. Positive rotation (clockwise) steers right.
+  function wheelAxis(rotation, maxRotation = Math.PI * 0.75) {
+    maxRotation = Math.max(0.01, finite(Number(maxRotation)));
+    return clamp(finite(Number(rotation)) / maxRotation, -1, 1);
+  }
+
+  // Gyro steering is relative to a calibrated level position. A small deadzone
+  // keeps hand tremor from nudging the car, and the result is clamped so a
+  // steep tilt cannot exceed full lock.
+  function steeringFromTilt(tilt, neutral = 0, maxTilt = 28, deadzone = 1.5) {
+    const delta = finite(Number(tilt)) - finite(Number(neutral));
+    maxTilt = Math.max(1, finite(Number(maxTilt)));
+    deadzone = clamp(finite(Number(deadzone)), 0, maxTilt * 0.8);
+    if (Math.abs(delta) <= deadzone) return 0;
+    const direction = delta < 0 ? -1 : 1;
+    return clamp((Math.abs(delta) - deadzone) / (maxTilt - deadzone) * direction, -1, 1);
+  }
+
   // Do not steal keyboard navigation/activation from native controls. Using
   // closest() also handles events whose target is an icon/span inside a button.
   function isInteractiveTarget(target) {
@@ -134,7 +158,7 @@
     return clamp(enabled ? Math.round(value / step) * step : value, 4, 96);
   }
 
-  function findOpenPosition(layout) {
+  function findOpenPosition(layout, size = 46, stageWidth = 0, stageHeight = 0) {
     const candidates = [
       { x: 50, y: 16 }, { x: 50, y: 84 }, { x: 40, y: 18 }, { x: 60, y: 18 },
       { x: 40, y: 82 }, { x: 60, y: 82 }, { x: 50, y: 32 }, { x: 50, y: 68 },
@@ -142,11 +166,29 @@
       { x: 34, y: 82 }, { x: 66, y: 82 }, { x: 50, y: 50 }
     ];
     const existing = Array.isArray(layout) ? layout : [];
+    const newSize = Math.max(1, Number(size) || 46);
+    const width = Number(stageWidth) > 0 && Number(stageHeight) > 0 ? Number(stageWidth) : 0;
+    const height = Number(stageHeight) > 0 ? Number(stageHeight) : 0;
+    const halfW = width ? (newSize / 2 / width) * 100 : 0;
+    const halfH = height ? (newSize / 2 / height) * 100 : 0;
     let best = candidates[0];
     let bestScore = -Infinity;
     for (const candidate of candidates) {
+      if (width && height && (
+        candidate.x - halfW < 4 || candidate.x + halfW > 96 ||
+        candidate.y - halfH < 4 || candidate.y + halfH > 96
+      )) continue;
       const nearest = existing.reduce((minimum, item) => {
         if (!item || !Number.isFinite(item.x) || !Number.isFinite(item.y)) return minimum;
+        if (width && height) {
+          const otherSize = Number(item.size) || 46;
+          const gapX = Math.abs(candidate.x - item.x) - halfW - (otherSize / 2 / width) * 100;
+          const gapY = Math.abs(candidate.y - item.y) - halfH - (otherSize / 2 / height) * 100;
+          // A full 2D overlap is much worse than a near miss, so rank it below
+          // every candidate that has at least one axis clear.
+          const clearance = Math.max(gapX, gapY);
+          return Math.min(minimum, clearance);
+        }
         const dx = (candidate.x - item.x) * 0.62;
         const dy = candidate.y - item.y;
         const clearance = Math.hypot(dx, dy) - Math.max(5, (Number(item.size) || 46) * 0.11);
@@ -161,15 +203,18 @@
     if (!Array.isArray(layout) || layout.length < 2 || layout.length > 40) return false;
     const ids = new Set();
     const stickSides = new Set();
+    let wheels = 0;
     for (const item of layout) {
       if (!item || typeof item.id !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(item.id) || ids.has(item.id)) return false;
       ids.add(item.id);
-      if (item.kind !== 'stick' && item.kind !== 'button') return false;
+      if (!['stick', 'button', 'wheel'].includes(item.kind)) return false;
       if (item.kind === 'stick') {
         if (!['left', 'right'].includes(item.side) || stickSides.has(item.side)) return false;
         stickSides.add(item.side);
       }
       if (item.kind === 'button' && !BUTTONS.includes(item.button)) return false;
+      if (item.kind === 'wheel' && ++wheels > 1) return false;
+      if (item.pedal !== undefined && typeof item.pedal !== 'boolean') return false;
       if (![item.x, item.y, item.size].every(Number.isFinite)) return false;
       if (item.x < 3 || item.x > 97 || item.y < 3 || item.y > 97 || item.size < 32 || item.size > 190) return false;
       if (typeof item.label !== 'string' || item.label.length > 12) return false;
@@ -179,7 +224,7 @@
     return stickSides.has('left') && stickSides.has('right');
   }
 
-  const api = { BUTTONS, clamp, normalizeStick, adaptiveOrigin, triggerPressure, snapPercent, findOpenPosition, isInteractiveTarget, PROFILE_META, createProfile, validateLayout };
+  const api = { BUTTONS, clamp, normalizeStick, adaptiveOrigin, triggerPressure, pedalPressure, wheelAxis, steeringFromTilt, snapPercent, findOpenPosition, isInteractiveTarget, PROFILE_META, createProfile, validateLayout };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.TouchBridgeGamepad = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

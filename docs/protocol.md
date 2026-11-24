@@ -1,4 +1,4 @@
-# TouchBridge LAN protocol (0.5.3-alpha)
+# TouchBridge LAN protocol (0.6.0)
 
 TouchBridge uses a small JSON protocol over a persistent WebSocket connection. The default TCP listener is port `8765`.
 
@@ -29,10 +29,10 @@ The terminal displays a cryptographically generated six-digit PIN. It is valid f
 The server limits failed attempts to five per source IP per minute and forty total per minute. Only one controller can be active at a time. Authentication succeeds with:
 
 ```json
-{"type":"auth_ok"}
+{"type":"auth_ok","server_version":"0.6.0"}
 ```
 
-The server then sends a `capabilities` message describing whether the selected desktop input backend exposes a virtual gamepad. Otherwise it sends `auth_error`, `rate_limited` or `controller_busy` and closes the connection. The PIN is a short local pairing code, not a replacement for encrypted transport; use only trusted private networks unless TLS is configured.
+The `server_version` field identifies the connected desktop build; older clients may ignore it, and clients should tolerate its absence when connecting to older servers. The server then sends a `capabilities` message describing whether the selected desktop input backend exposes a virtual gamepad. Otherwise it sends `auth_error`, `rate_limited` or `controller_busy` and closes the connection. The PIN is a short local pairing code, not a replacement for encrypted transport; use only trusted private networks unless TLS is configured.
 
 ## Mouse and keyboard input
 

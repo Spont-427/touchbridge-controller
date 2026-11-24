@@ -98,6 +98,46 @@ test('new controls are placed away from the existing layout where practical', ()
 });
 
 
+test('pedal pressure rises toward the bottom of its travel', () => {
+  assert.equal(core.pedalPressure(100, 100, 100), 0);
+  assert.equal(core.pedalPressure(150, 100, 100), 0.5);
+  assert.equal(core.pedalPressure(200, 100, 100), 1);
+  assert.equal(core.pedalPressure(300, 100, 100), 1);
+});
+
+
+test('large controls avoid overlapping existing controls', () => {
+  const existing = [{ id: 'pedal', kind: 'button', button: 'RT', x: 50, y: 73, size: 88 }];
+  const position = core.findOpenPosition(existing, 88, 914, 411);
+  const halfH = (88 / 2 / 411) * 100;
+  assert.ok(Math.abs(position.y - 73) > halfH * 2);
+});
+
+
+test('wheel rotation maps onto the left stick range', () => {
+  assert.equal(core.wheelAxis(0), 0);
+  assert.equal(core.wheelAxis(Math.PI * 0.75), 1);
+  assert.equal(core.wheelAxis(-Math.PI * 0.75), -1);
+  assert.equal(core.wheelAxis(Math.PI * 4), 1);
+});
+
+test('gyro steering applies a deadzone, direction and full-lock clamp', () => {
+  assert.equal(core.steeringFromTilt(1, 0, 28, 2), 0);
+  assert.ok(core.steeringFromTilt(10, 0, 28, 2) > 0);
+  assert.ok(core.steeringFromTilt(-10, 0, 28, 2) < 0);
+  assert.equal(core.steeringFromTilt(60, 0, 28, 2), 1);
+  assert.equal(core.steeringFromTilt(10, 10, 28, 2), 0);
+});
+
+test('steering wheel and pedal controls are valid layout entries', () => {
+  const layout = core.createProfile('generic');
+  layout.push({ id: 'wheel', kind: 'wheel', label: 'WHEEL', x: 50, y: 50, size: 150 });
+  layout.push({ id: 'accelerator', kind: 'button', button: 'RT', pedal: true, label: 'ACCEL', x: 80, y: 20, size: 88 });
+  assert.equal(core.validateLayout(layout), true);
+  layout.push({ id: 'wheel-2', kind: 'wheel', label: 'WHEEL', x: 30, y: 50, size: 150 });
+  assert.equal(core.validateLayout(layout), false);
+});
+
 test('editor snap-to-grid is optional and clamps controls inside the canvas', () => {
   assert.equal(core.snapPercent(13.2, true, 2), 14);
   assert.equal(core.snapPercent(13.2, false, 2), 13.2);

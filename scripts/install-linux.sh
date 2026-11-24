@@ -4,14 +4,31 @@ set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 ARCH="$(uname -m)"
 case "$ARCH" in
-  x86_64|amd64) BIN="$ROOT/dist/touchbridge-linux-amd64" ;;
-  aarch64|arm64) BIN="$ROOT/dist/touchbridge-linux-arm64" ;;
+  x86_64|amd64) BIN="$ROOT/dist/touchbridge-linux-amd64"; GOARCH=amd64 ;;
+  aarch64|arm64) BIN="$ROOT/dist/touchbridge-linux-arm64"; GOARCH=arm64 ;;
   *) echo "Unsupported Linux architecture: $ARCH" >&2; exit 1 ;;
 esac
 if [[ ! -f "$BIN" ]]; then
-  echo "Missing server binary: $BIN" >&2
-  echo "Re-download the complete release archive for this architecture." >&2
-  exit 1
+  if [[ -f "$ROOT/go.mod" && -f "$ROOT/cmd/touchbridge/main.go" ]]; then
+    if ! command -v go >/dev/null; then
+      echo "Missing server binary: $BIN" >&2
+      echo "This is a source checkout, but Go is not installed, so it cannot be built automatically." >&2
+      echo "Install Go, or re-download the complete release archive for this architecture." >&2
+      exit 1
+    fi
+    echo "Server binary not found; building it from source for linux/$GOARCH…"
+    mkdir -p "$ROOT/dist"
+    if ! (cd "$ROOT" && CGO_ENABLED=0 GOOS=linux GOARCH="$GOARCH" \
+      go build -trimpath -ldflags='-s -w' -o "$BIN" ./cmd/touchbridge); then
+      echo "Failed to build the server from source." >&2
+      echo "Run 'bash scripts/build.sh' to see the full build error." >&2
+      exit 1
+    fi
+  else
+    echo "Missing server binary: $BIN" >&2
+    echo "Re-download the complete release archive for this architecture." >&2
+    exit 1
+  fi
 fi
 
 CALLER="${SUDO_USER:-${USER:-}}"

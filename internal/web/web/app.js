@@ -13,6 +13,7 @@
   const sensitivityValue = $('sensitivityValue');
   const latencyBadge = $('latencyBadge');
   const latencyValue = $('latencyValue');
+  const playerBadge = $('playerBadge');
   const gamepadSupport = $('gamepadSupport');
   const gamepadStage = $('gamepadStage');
   const gamepadControls = $('gamepadControls');
@@ -52,6 +53,7 @@
   const controllerSettingsPanel = $('controllerSettingsPanel');
   const editorAdvancedPanel = $('editorAdvancedPanel');
   const hapticsEnabled = $('hapticsEnabled');
+  const keepScreenOn = $('keepScreenOn');
   const triggerModeSelect = $('triggerModeSelect');
   const themeSelect = $('themeSelect');
   const gyroSteeringEnabled = $('gyroSteeringEnabled');
@@ -129,6 +131,8 @@
   let editorReturnScreen = 'home';
   let selectedServer = null;
   let connectedServerVersion = '';
+  let playerNumber = 0;
+  let maxControllers = 1;
   let activeConnectionURL = '';
   let queuedServerSelection = null;
   let rememberedServers = [];
@@ -200,6 +204,24 @@
     if (homeDeviceSummary) homeDeviceSummary.textContent = online ? (selectedServer?.name || 'Computer connected') : (rememberedServers.length ? `${rememberedServers.length} remembered computer${rememberedServers.length === 1 ? '' : 's'}` : 'No PC connected');
     document.body.classList.toggle('is-connected', online);
     updateAboutDiagnostics();
+  }
+
+  function updatePlayerBadge() {
+    if (!playerBadge) return;
+    playerBadge.hidden = !(authenticated && playerNumber > 0);
+    playerBadge.textContent = playerNumber > 0 ? `P${playerNumber}` : '';
+    playerBadge.title = maxControllers > 1
+      ? `Player ${playerNumber} of ${maxControllers}`
+      : 'Controller player';
+  }
+
+  function applyKeepScreenOn() {
+    const enabled = Boolean(keepScreenOn?.checked) && currentScreen === 'controller' && !document.hidden;
+    try {
+      if (window.TouchBridgeAndroid?.setKeepScreenOn) window.TouchBridgeAndroid.setKeepScreenOn(enabled);
+    } catch (_) {
+      // Browsers and older hosts simply keep their normal sleep behaviour.
+    }
   }
 
   function setLatency(value) {
@@ -394,6 +416,7 @@
       updateProfileLabels();
       if (profileSelect) profileSelect.value = activeProfile;
     }
+    applyKeepScreenOn();
   }
 
   function openEditor() {
@@ -741,6 +764,9 @@
         connectionTimeout = 0;
         authenticated = true;
         connectedServerVersion = String(data.server_version || '');
+        playerNumber = Number(data.player) || 1;
+        maxControllers = Math.max(1, Number(data.max_controllers) || 1);
+        updatePlayerBadge();
         pendingDX = pendingDY = 0;
         if (data.device_token && connectionServer) {
           connectionServer.serverId = data.server_id || connectionServer.serverId || '';
@@ -757,10 +783,15 @@
         heartbeatTimer = setInterval(() => send({ type: 'keepalive' }), 15000);
         startLatencyProbe();
         closeMessage = 'Disconnected. Select a remembered computer to reconnect.';
-        setStatus(true, 'Connected. Gamepad input is ready.');
+        setStatus(true, maxControllers > 1
+          ? `Connected as Player ${playerNumber} of ${maxControllers}. Gamepad input is ready.`
+          : 'Connected. Gamepad input is ready.');
         pinInput.value = '';
         if (currentScreen === 'devices') setScreen('controller');
       } else if (data.type === 'capabilities') {
+        if (Number(data.player) > 0) playerNumber = Number(data.player);
+        if (Number(data.max_controllers) > 0) maxControllers = Number(data.max_controllers);
+        updatePlayerBadge();
         setGamepadAvailability(Boolean(data.gamepad), data.gamepad_status || '');
       } else if (data.type === 'latency_pong') {
         const started = Number(data.timestamp);
@@ -784,7 +815,8 @@
         ws.close();
       } else if (data.type === 'controller_busy') {
         authenticated = false;
-        closeMessage = 'Another phone is already controlling this PC. Disconnect it first.';
+        const limit = Math.max(1, Number(data.max_controllers) || 1);
+        closeMessage = `This PC already has ${limit} controller${limit === 1 ? '' : 's'} connected. Disconnect one of them first.`;
         hint.textContent = closeMessage;
         ws.close();
       }
@@ -796,6 +828,9 @@
       authenticated = false;
       gamepadAvailable = false;
       connectedServerVersion = '';
+      playerNumber = 0;
+      maxControllers = 1;
+      updatePlayerBadge();
       setGamepadAvailability(false, 'Connect a computer to send controller input.');
       if (heartbeatTimer) clearInterval(heartbeatTimer);
       if (latencyTimer) clearInterval(latencyTimer);
@@ -815,6 +850,7 @@
       clearGamepadState(false, false);
       releaseLocalState();
       setStatus(false, closeMessage);
+      applyKeepScreenOn();
 
       if (queuedServerSelection) {
         const next = queuedServerSelection;
@@ -2008,6 +2044,7 @@
   const savedCurve = safeStorageGet('touchbridge.stick.curve');
   if (['linear', 'precision', 'responsive'].includes(savedCurve)) stickCurve.value = savedCurve;
   hapticsEnabled.checked = safeStorageGet('touchbridge.haptics') !== 'false';
+  keepScreenOn.checked = safeStorageGet('touchbridge.keepScreenOn') !== 'false';
   const savedTheme = safeStorageGet('touchbridge.theme');
   if (themeSelect) {
     themeSelect.value = ['light', 'dark', 'amoled'].includes(savedTheme) ? savedTheme : 'system';
@@ -2018,7 +2055,7 @@
   }
   const appVersion = window.TouchBridgeAndroid?.getAppVersion?.()
     || document.querySelector('meta[name="touchbridge-version"]')?.content
-    || '0.6.0';
+    || '0.7.0';
   if (appVersionValue) appVersionValue.textContent = `Version ${appVersion}`;
   $('openRepositoryButton')?.addEventListener('click', () => {
     if (window.TouchBridgeAndroid?.openRepository) window.TouchBridgeAndroid.openRepository();
@@ -2040,6 +2077,10 @@
   refreshGyroStatus();
   if (savedGyro === 'true') setGyroEnabled(true);
   hapticsEnabled.addEventListener('change', () => safeStorageSet('touchbridge.haptics', String(hapticsEnabled.checked)));
+  keepScreenOn.addEventListener('change', () => {
+    safeStorageSet('touchbridge.keepScreenOn', String(keepScreenOn.checked));
+    applyKeepScreenOn();
+  });
   triggerModeSelect.addEventListener('change', () => {
     safeStorageSet('touchbridge.triggerMode', triggerModeSelect.value);
     rebuildGamepadButtons();
@@ -2182,6 +2223,7 @@
       send({ type: 'release_all' });
       releaseLocalState();
     }
+    applyKeepScreenOn();
   });
   if ('serviceWorker' in navigator && location.protocol === 'https:' && location.hostname !== 'touchbridge.appassets.local') navigator.serviceWorker.register('/sw.js').catch(() => {});
   rememberedServers = getRememberedServers();

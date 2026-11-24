@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.0 — 2026-11-24 — multiplayer controllers and screen-awake support
+
+- Allow up to four authenticated phones to connect to one desktop server. Each receives the next free player slot (`P1`–`P4`); a fifth receives `controller_busy` with the four-player limit, and disconnected slots are reused.
+- Add independent virtual gamepad slots for each player: Linux creates up to four uinput devices, Windows creates one ViGEm provider per player, and the mock backend models all four slots.
+- Scope gamepad resets to the player's own slot. Add shared ownership tracking for keyboard keys and mouse buttons so one phone cannot release an input another connected phone is still holding.
+- Show the player badge and “Connected as Player N of 4” status in the controller UI; include player index and maximum controller count in authentication and capability messages.
+- Add a persistent **Keep screen on** setting under Controls & haptics, enabled by default while the controller screen is open.
+- Use the Android bridge to set `FLAG_KEEP_SCREEN_ON` while needed and clear it on leaving the controller or destroying the activity.
+- Document four-player protocol and lifecycle behaviour, plus the screen-awake setting.
+- Bump Android and desktop version to `0.7.0` (`versionCode` 13) and the service-worker shell cache to v10.
+- Add regression tests for player-slot assignment/limits/reuse, per-player disconnect cleanup, and shared keyboard/mouse input ownership.
+
 ## 0.6.0 — 2026-11-24 — wheel controls, pedals and settings refresh
 
 - Fix digital LT/RT handling by sending both the trigger button and full axis pressure, including for Linux evdev/gamepad backends.

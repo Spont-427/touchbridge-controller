@@ -12,23 +12,98 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/Spont-427/touchbridge-controller/internal/input"
 )
 
 type testBackend struct {
-	moves    atomic.Int32
-	releases atomic.Int32
-	closed   atomic.Bool
+	moves       atomic.Int32
+	releases    atomic.Int32
+	resets      atomic.Int32
+	keyDowns    atomic.Int32
+	keyUps      atomic.Int32
+	buttonDowns atomic.Int32
+	buttonUps   atomic.Int32
+	keys        map[string]bool
+	buttons     map[string]bool
+	closed      atomic.Bool
+	mu          sync.Mutex
+	states      map[int]input.GamepadState
 }
 
-func (b *testBackend) MoveMouse(dx, dy int) error   { b.moves.Add(1); return nil }
-func (*testBackend) MouseButton(string, bool) error { return nil }
-func (*testBackend) Scroll(int) error               { return nil }
-func (*testBackend) Key(string, bool) error         { return nil }
-func (b *testBackend) ReleaseAll() error            { b.releases.Add(1); return nil }
-func (b *testBackend) Close() error                 { b.closed.Store(true); return nil }
+func (b *testBackend) MoveMouse(dx, dy int) error { b.moves.Add(1); return nil }
+func (b *testBackend) MouseButton(button string, down bool) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.buttons == nil {
+		b.buttons = make(map[string]bool)
+	}
+	if down {
+		b.buttonDowns.Add(1)
+		b.buttons[button] = true
+	} else {
+		b.buttonUps.Add(1)
+		delete(b.buttons, button)
+	}
+	return nil
+}
+func (*testBackend) Scroll(int) error { return nil }
+func (b *testBackend) Key(key string, down bool) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.keys == nil {
+		b.keys = make(map[string]bool)
+	}
+	if down {
+		b.keyDowns.Add(1)
+		b.keys[key] = true
+	} else {
+		b.keyUps.Add(1)
+		delete(b.keys, key)
+	}
+	return nil
+}
+func (b *testBackend) ReleaseAll() error { b.releases.Add(1); return nil }
+func (b *testBackend) Close() error      { b.closed.Store(true); return nil }
+
+func (*testBackend) GamepadAvailable() bool { return true }
+func (*testBackend) GamepadSlotCount() int  { return input.MaxGamepadSlots }
+func (b *testBackend) SetGamepadState(state input.GamepadState) error {
+	return b.SetGamepadStateSlot(0, state)
+}
+func (b *testBackend) SetGamepadStateSlot(slot int, state input.GamepadState) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.states == nil {
+		b.states = make(map[int]input.GamepadState)
+	}
+	b.states[slot] = state
+	return nil
+}
+func (b *testBackend) ResetGamepad() error { return b.ResetGamepadSlot(0) }
+func (b *testBackend) ResetGamepadSlot(slot int) error {
+	b.resets.Add(1)
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	delete(b.states, slot)
+	return nil
+}
+func (b *testBackend) desktopState(key, button string) (bool, bool) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.keys[key], b.buttons[button]
+}
+
+func (b *testBackend) state(slot int) (input.GamepadState, bool) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	state, ok := b.states[slot]
+	return state, ok
+}
 
 type testWS struct {
 	conn   net.Conn
@@ -132,7 +207,7 @@ func TestHandlerServesClient(t *testing.T) {
 
 func TestWebSocketAuthenticationAndInput(t *testing.T) {
 	backend := &testBackend{}
-	server := httptest.NewServer((&Server{PIN: "123456", PINExpires: time.Now().Add(time.Hour), Version: "0.6.0", Input: backend, Logger: log.New(io.Discard, "", 0)}).Handler())
+	server := httptest.NewServer((&Server{PIN: "123456", PINExpires: time.Now().Add(time.Hour), Version: "0.7.0", Input: backend, Logger: log.New(io.Discard, "", 0)}).Handler())
 	defer server.Close()
 	c := dialTestWS(t, server.URL, server.URL)
 	c.sendJSON(t, map[string]any{"type": "auth", "pin": "123456"})
@@ -140,10 +215,11 @@ func TestWebSocketAuthenticationAndInput(t *testing.T) {
 	if reply["type"] != "auth_ok" {
 		t.Fatalf("auth response=%v", reply)
 	}
-	if reply["server_version"] != "0.6.0" {
-		t.Fatalf("server_version=%v, want 0.6.0", reply["server_version"])
+	if reply["server_version"] != "0.7.0" {
+		t.Fatalf("server_version=%v, want 0.7.0", reply["server_version"])
 	}
 	c.sendJSON(t, map[string]any{"type": "mouse_move", "dx": 14, "dy": -3})
+	c.sendJSON(t, map[string]any{"type": "gamepad_state", "left_x": 0.5, "buttons": []string{"A"}})
 	deadline := time.Now().Add(time.Second)
 	for backend.moves.Load() == 0 && time.Now().Before(deadline) {
 		time.Sleep(time.Millisecond)
@@ -151,13 +227,22 @@ func TestWebSocketAuthenticationAndInput(t *testing.T) {
 	if backend.moves.Load() != 1 {
 		t.Fatalf("mouse event count=%d", backend.moves.Load())
 	}
-	c.close()
-	deadline = time.Now().Add(time.Second)
-	for backend.releases.Load() == 0 && time.Now().Before(deadline) {
+	for {
+		if state, ok := backend.state(0); ok && state.LeftX == 0.5 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("gamepad state was not applied")
+		}
 		time.Sleep(time.Millisecond)
 	}
-	if backend.releases.Load() == 0 {
-		t.Fatal("disconnect did not release held inputs")
+	c.close()
+	deadline = time.Now().Add(time.Second)
+	for backend.resets.Load() == 0 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if backend.resets.Load() == 0 {
+		t.Fatal("disconnect did not reset the player's gamepad")
 	}
 }
 
@@ -198,7 +283,72 @@ func TestUnauthenticatedSocketDoesNotBlockValidController(t *testing.T) {
 	}
 }
 
-func TestOnlyOneAuthenticatedControllerCanConnect(t *testing.T) {
+func TestControllersReceiveDistinctPlayerSlots(t *testing.T) {
+	backend := &testBackend{}
+	server := httptest.NewServer((&Server{PIN: "123456", PINExpires: time.Now().Add(time.Hour), Input: backend, Logger: log.New(io.Discard, "", 0)}).Handler())
+	defer server.Close()
+
+	first := dialTestWS(t, server.URL, server.URL)
+	defer first.close()
+	first.sendJSON(t, map[string]any{"type": "auth", "pin": "123456"})
+	firstReply := first.readJSON(t)
+	if firstReply["type"] != "auth_ok" || firstReply["player"] != float64(1) || firstReply["max_controllers"] != float64(input.MaxGamepadSlots) {
+		t.Fatalf("first auth response=%v", firstReply)
+	}
+
+	second := dialTestWS(t, server.URL, server.URL)
+	defer second.close()
+	second.sendJSON(t, map[string]any{"type": "auth", "pin": "123456"})
+	secondReply := second.readJSON(t)
+	if secondReply["type"] != "auth_ok" || secondReply["player"] != float64(2) || secondReply["player_index"] != float64(1) {
+		t.Fatalf("second auth response=%v", secondReply)
+	}
+
+	// Player 2's state must go to slot 1, leaving player 1's pad untouched.
+	second.sendJSON(t, map[string]any{"type": "gamepad_state", "left_x": 0.75, "buttons": []string{"A"}})
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		if state, ok := backend.state(1); ok && state.LeftX == 0.75 {
+			if _, firstTouched := backend.state(0); firstTouched {
+				t.Fatal("player 2 input was also applied to player 1's gamepad")
+			}
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatal("player 2 gamepad state was not applied to slot 1")
+}
+
+func TestControllerBusyOnlyWhenAllPlayerSlotsAreUsed(t *testing.T) {
+	backend := &testBackend{}
+	server := httptest.NewServer((&Server{PIN: "123456", PINExpires: time.Now().Add(time.Hour), Input: backend, Logger: log.New(io.Discard, "", 0)}).Handler())
+	defer server.Close()
+
+	controllers := make([]*testWS, 0, input.MaxGamepadSlots)
+	for i := 0; i < input.MaxGamepadSlots; i++ {
+		c := dialTestWS(t, server.URL, server.URL)
+		controllers = append(controllers, c)
+		c.sendJSON(t, map[string]any{"type": "auth", "pin": "123456"})
+		if got := c.readJSON(t)["type"]; got != "auth_ok" {
+			t.Fatalf("player %d auth response=%v", i+1, got)
+		}
+	}
+	defer func() {
+		for _, c := range controllers {
+			c.close()
+		}
+	}()
+
+	extra := dialTestWS(t, server.URL, server.URL)
+	defer extra.close()
+	extra.sendJSON(t, map[string]any{"type": "auth", "pin": "123456"})
+	busy := extra.readJSON(t)
+	if busy["type"] != "controller_busy" || busy["max_controllers"] != float64(input.MaxGamepadSlots) {
+		t.Fatalf("extra controller response=%v, want controller_busy", busy)
+	}
+}
+
+func TestDisconnectOnlyReleasesThatPlayersGamepad(t *testing.T) {
 	backend := &testBackend{}
 	server := httptest.NewServer((&Server{PIN: "123456", PINExpires: time.Now().Add(time.Hour), Input: backend, Logger: log.New(io.Discard, "", 0)}).Handler())
 	defer server.Close()
@@ -209,12 +359,66 @@ func TestOnlyOneAuthenticatedControllerCanConnect(t *testing.T) {
 	if got := first.readJSON(t)["type"]; got != "auth_ok" {
 		t.Fatalf("first auth response=%v", got)
 	}
+	second := dialTestWS(t, server.URL, server.URL)
+	second.sendJSON(t, map[string]any{"type": "auth", "pin": "123456"})
+	if got := second.readJSON(t)["type"]; got != "auth_ok" {
+		t.Fatalf("second auth response=%v", got)
+	}
 
+	first.sendJSON(t, map[string]any{"type": "gamepad_state", "left_x": 0.25})
+	second.sendJSON(t, map[string]any{"type": "gamepad_state", "left_x": 0.75})
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		firstState, firstOK := backend.state(0)
+		secondState, secondOK := backend.state(1)
+		if firstOK && secondOK && firstState.LeftX == 0.25 && secondState.LeftX == 0.75 {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
+	second.close()
+
+	deadline = time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		if _, ok := backend.state(1); !ok {
+			if state, ok := backend.state(0); ok && state.LeftX == 0.25 {
+				return
+			}
+			t.Fatal("disconnecting player 2 also reset player 1's gamepad")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatal("player 2 gamepad was not reset on disconnect")
+}
+
+func TestDisconnectFreesPlayerSlotForAnotherController(t *testing.T) {
+	backend := &testBackend{}
+	server := httptest.NewServer((&Server{PIN: "123456", PINExpires: time.Now().Add(time.Hour), Input: backend, Logger: log.New(io.Discard, "", 0)}).Handler())
+	defer server.Close()
+
+	first := dialTestWS(t, server.URL, server.URL)
+	first.sendJSON(t, map[string]any{"type": "auth", "pin": "123456"})
+	if got := first.readJSON(t)["type"]; got != "auth_ok" {
+		t.Fatalf("first auth response=%v", got)
+	}
 	second := dialTestWS(t, server.URL, server.URL)
 	defer second.close()
 	second.sendJSON(t, map[string]any{"type": "auth", "pin": "123456"})
-	if got := second.readJSON(t)["type"]; got != "controller_busy" {
-		t.Fatalf("second auth response=%v, want controller_busy", got)
+	if reply := second.readJSON(t); reply["player"] != float64(2) {
+		t.Fatalf("second auth response=%v", reply)
+	}
+
+	first.close()
+	deadline := time.Now().Add(time.Second)
+	for backend.resets.Load() == 0 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+
+	replacement := dialTestWS(t, server.URL, server.URL)
+	defer replacement.close()
+	replacement.sendJSON(t, map[string]any{"type": "auth", "pin": "123456"})
+	if reply := replacement.readJSON(t); reply["type"] != "auth_ok" || reply["player"] != float64(1) {
+		t.Fatalf("replacement auth response=%v, want freed player 1 slot", reply)
 	}
 }
 
@@ -289,20 +493,31 @@ func TestWebSocketKeepaliveAndIdleRelease(t *testing.T) {
 	if got := controller.readJSON(t)["type"]; got != "capabilities" {
 		t.Fatalf("capabilities response=%v", got)
 	}
+	controller.sendJSON(t, map[string]any{"type": "gamepad_state", "left_x": 0.5, "buttons": []string{"A"}})
+	deadline := time.Now().Add(time.Second)
+	for {
+		if state, ok := backend.state(0); ok && state.LeftX == 0.5 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("gamepad state was not applied before idle timeout")
+		}
+		time.Sleep(time.Millisecond)
+	}
 	controller.sendJSON(t, map[string]any{"type": "keepalive"})
 	if got := controller.readJSON(t)["type"]; got != "keepalive_ack" {
 		t.Fatalf("keepalive response=%v", got)
 	}
 
-	deadline := time.Now().Add(time.Second)
-	for backend.releases.Load() == 0 && time.Now().Before(deadline) {
+	deadline = time.Now().Add(time.Second)
+	for backend.resets.Load() == 0 && time.Now().Before(deadline) {
 		time.Sleep(5 * time.Millisecond)
 	}
-	if backend.releases.Load() == 0 {
-		t.Fatal("idle controller connection did not time out and release held input")
+	if backend.resets.Load() == 0 {
+		t.Fatal("idle controller connection did not time out and reset its gamepad")
 	}
 
-	// The connection timeout must release the single-controller slot.
+	// The connection timeout must release the player slot.
 	next := dialTestWS(t, server.URL, server.URL)
 	defer next.close()
 	next.sendJSON(t, map[string]any{"type": "auth", "pin": "123456"})
@@ -323,6 +538,17 @@ func TestShutdownClosesHijackedWebSocketBeforeBackend(t *testing.T) {
 	if got := controller.readJSON(t)["type"]; got != "capabilities" {
 		t.Fatalf("capabilities response=%v", got)
 	}
+	controller.sendJSON(t, map[string]any{"type": "gamepad_state", "left_x": 0.5, "buttons": []string{"A"}})
+	deadline := time.Now().Add(time.Second)
+	for {
+		if state, ok := backend.state(0); ok && state.LeftX == 0.5 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("gamepad state was not applied before shutdown")
+		}
+		time.Sleep(time.Millisecond)
+	}
 
 	shutdownDone := make(chan error, 1)
 	go func() { shutdownDone <- app.Shutdown() }()
@@ -342,8 +568,8 @@ func TestShutdownClosesHijackedWebSocketBeforeBackend(t *testing.T) {
 	if !backend.closed.Load() {
 		t.Fatal("input backend was not closed after WebSocket handler exited")
 	}
-	if backend.releases.Load() == 0 {
-		t.Fatal("active input was not released before backend close")
+	if backend.resets.Load() == 0 {
+		t.Fatal("active gamepad was not reset before backend close")
 	}
 	server.Close()
 }

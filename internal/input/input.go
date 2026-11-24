@@ -5,7 +5,7 @@ import "errors"
 var ErrUnsupported = errors.New("input injection is not supported on this platform")
 
 // Backend injects input into the local desktop session.
-// Implementations must release all held keyboard, mouse and gamepad state when a client disconnects.
+// Implementations must release all held keyboard, mouse and gamepad state when closed. Per-client release is handled by the server session layer.
 type Backend interface {
 	MoveMouse(dx, dy int) error
 	MouseButton(button string, down bool) error

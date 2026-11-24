@@ -1,49 +1,44 @@
-# Build status — 0.6.0
+# Build status — 0.7.0
 
-Date: 2026-11-24. Android `versionCode` 12, `versionName` 0.6.0. Desktop server version: 0.6.0.
+Date: 2026-11-24. Android `versionCode` 13, `versionName` 0.7.0. Desktop server version: 0.7.0.
 
 ## Included changes
 
-- Digital LT/RT input sends both the button and full trigger-axis pressure.
-- Latency indicator displays rolling median RTT and exposes p95/jitter details.
-- Accelerator and brake pedals use analog RT/LT pressure, increasing toward the bottom of the control.
-- Steering wheel maps its drag rotation to `left_x` and returns to neutral on release.
-- Optional gyro steering supports neutral calibration, filtering, deadzone and inversion and only runs for layouts containing a wheel.
-- Theme choices are System, Dark (`#0f141b`), AMOLED black and Light.
-- Settings are separated into Appearance, Controls & haptics, Analog sticks and About.
-- About displays app/server versions, connection state, gamepad backend status and the project link.
-- Size-aware placement improves positioning of large controls and reduces overlap/off-canvas placement.
-- Desktop and Android controller assets are synchronized.
+- Support up to four authenticated phone controllers, each assigned a player slot and dedicated virtual gamepad.
+- Reuse player slots after disconnect and reject a fifth simultaneous controller with `controller_busy` and the configured limit.
+- Scope gamepad resets to the disconnecting player's slot.
+- Track ownership of shared keyboard keys and mouse buttons so one player's disconnect cannot release an input another player is still holding.
+- Add P1–P4 player badges and player-aware connection status in the controller UI.
+- Keep the Android display awake by default while the controller is open, with a persistent setting under Controls & haptics.
+- Set and clear `FLAG_KEEP_SCREEN_ON` through the Android bridge and clear the flag when the activity is destroyed.
+- Update protocol, stability and controller documentation for multiplayer and screen-awake behaviour.
+- Bump Android and desktop version to `0.7.0` (`versionCode` 13) and service-worker shell cache to v10.
 
-## Source checks run in this workspace
+## Automated checks run in this workspace
 
 - `gofmt -l .` — passed.
-- `go test -race ./...` — passed.
+- `go test -race ./...` — passed across all Go packages, including multiplayer slot, disconnect and shared keyboard/mouse ownership tests.
 - `go vet ./...` — passed.
 - Node syntax checks — passed.
-- Controller math tests — 18/18 passed.
-- Shell syntax — passed.
-- DOM binding audit — 107 direct references, no missing IDs.
-- Android/web asset parity — 8/8 identical.
-- Protocol fuzz smoke test — passed for one second. Web fuzz smoke test timed out and is not marked as passed.
+- `node --test internal/web/web/gamepad-core.test.cjs` — 18/18 passed.
+- `bash -n Install-TouchBridge-Linux.sh scripts/*.sh` — passed.
+- Web DOM binding audit — 109 direct references, no missing IDs.
+- Android/desktop asset parity — all eight shared assets identical.
+- Cross-compilation — Linux amd64, Linux arm64 and Windows amd64 builds passed.
 
-## Toolchain alignment
-
-- Android Gradle Plugin 9.5.2.
-- Gradle wrapper 9.6.0.
-- JDK 17.
-- Android SDK Platform 35.
-- Android SDK Build Tools 36.0.0.
-- Kotlin uses AGP's built-in Kotlin support; the old `org.jetbrains.kotlin.android` plugin is removed.
+The protocol fuzz smoke test passed for one second. The WebSocket parser fuzz test did not finish within the workspace time limit, so it is not marked as passed. `govulncheck` remains a CI check. This preparation environment did not build the Android APK; the Android Gradle build should run on the release machine or in GitHub Actions.
 
 ## Release artifact status
 
-The prebuilt APK inside the uploaded project is still version `0.5.3-alpha`, Android `versionCode` 11 and debug-signed. It is deliberately excluded from the PR-ready source archive and is not a valid 0.6.0 upload. The release workflow builds and attaches a fresh 0.6.0 debug APK for testers; build the stable signed APK with `scripts/build-android-release.sh` and your private release keystore, then upload it to the same release.
+The uploaded project contained a previously built `0.6.0` debug APK. It is not a 0.7.0 artifact and is excluded from the PR-ready source ZIP. Build the new signed stable APK on the release machine with `scripts/build-android-release.sh`, using the exact same private release keystore that signed v0.6.0. Do not create a new signing key. GitHub Actions attaches the new debug APK and Windows/Linux packages when the v0.7.0 release is published; upload the stable signed APK manually.
 
-## Remaining validation before stable publication
+## Physical-device validation before stable publication
 
-- Run the Android Gradle build on the release machine using the updated toolchain.
-- Install and test the 0.6.0 APK on a physical Android device. Specifically validate gyro permission, neutral calibration, portrait/landscape sensor orientation, steering wheel drag/release, pedals and the new settings flows.
-- Test trigger axis/button outputs, pedals and steering on physical Linux and Windows hosts, and in at least one target game or controller tester.
-- Run the GitHub Actions checks and vulnerability scan on the PR.
-- Build and verify the release-signed APK. Keep at least two encrypted backups of the release keystore.
+- Connect four Android phones at once and verify each receives P1–P4; confirm a fifth is rejected and a freed slot is reused.
+- Test separate gamepad state on four Linux `/dev/uinput` devices and four Windows ViGEmBus providers.
+- Have two phones hold the same keyboard key and mouse button; disconnect one and confirm the input remains held until the other phone releases it.
+- Check the player badge/status, reconnect and idle-timeout cleanup.
+- Verify Keep screen on defaults to enabled only on the controller screen, can be disabled in Settings, and clears after leaving the controller or closing the activity.
+- Test sleep/resume, screen rotation, Android background/foreground transitions and long controller sessions.
+
+Complete this checklist before marking v0.7.0 stable. Automated tests do not replace testing with real phones and desktop backends.

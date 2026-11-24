@@ -584,7 +584,7 @@ html[data-theme="light"] .editor-advanced-actions .danger-button { background: #
 html[data-theme="light"] .editor-advanced-panel .setting-help { color: #707b88; }
 html[data-theme="light"] .editor-advanced-panel .text-button { color: #4a525b; }
 
-/* 0.6.0-alpha — neutral dark palette, racing controls and grouped settings. */
+/* 0.7.0 — multiplayer controller sessions and screen-awake support. */
 
 /* Dark is a soft near-black workspace rather than true OLED black. The default
    AMOLED palette above remains available as an explicit theme. */
@@ -665,4 +665,9 @@ html[data-theme="dark"] .editor-advanced-panel { background: #0d131af2; border-c
 .about-stat { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid #1d252f; color: #99a4b2; font-size: 10px; }
 .about-stat:last-child { border-bottom: 0; }
 .about-stat strong { color: #dfe5ec; font-weight: 600; text-align: right; }
-@media (max-width: 430px) { .wheel-rim { border-width: 7px; } .play-hud .ping-indicator { min-width: 50px; padding: 0 6px; } }
+/* Player assignment for multiplayer sessions. */
+.play-hud .player-badge { height: 29px; display: inline-flex; align-items: center; justify-content: center; padding: 0 9px; border: 1px solid #2a4154; border-radius: 99px; background: #0c1822e8; color: #9fd7f0; font-size: 9px; font-weight: 800; letter-spacing: .4px; backdrop-filter: blur(8px); }
+.play-hud .player-badge[hidden] { display: none; }
+html[data-theme="dark"] .play-hud .player-badge { background: #0d131ae8; border-color: #2c3a47; }
+html[data-theme="light"] .play-hud .player-badge { background: #ffffffdd; border-color: #d2d7db; color: #31566b; }
+@media (max-width: 430px) { .wheel-rim { border-width: 7px; } .play-hud .ping-indicator { min-width: 50px; padding: 0 6px; } .play-hud .player-badge { height: 27px; padding: 0 7px; } }

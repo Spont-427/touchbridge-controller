@@ -48,3 +48,27 @@ func TestDigitalTriggersAreAcceptedAsButtons(t *testing.T) {
 		t.Fatal("LT and RT must be recognised as digital buttons")
 	}
 }
+
+func TestMockGamepadSlotsAreIndependentAndResettable(t *testing.T) {
+	mock := &Mock{}
+	stateOne := GamepadState{LeftX: 0.5, Buttons: []string{"A"}}
+	stateTwo := GamepadState{LeftX: -0.5, Buttons: []string{"B"}}
+	if err := mock.SetGamepadStateSlot(0, stateOne); err != nil {
+		t.Fatal(err)
+	}
+	if err := mock.SetGamepadStateSlot(1, stateTwo); err != nil {
+		t.Fatal(err)
+	}
+	if err := mock.ResetGamepadSlot(1); err != nil {
+		t.Fatal(err)
+	}
+	if got := mock.states[0].LeftX; got != stateOne.LeftX {
+		t.Fatalf("player one state changed after player two reset: %v", got)
+	}
+	if _, ok := mock.states[1]; ok {
+		t.Fatal("player two state remained after reset")
+	}
+	if err := mock.SetGamepadStateSlot(MaxGamepadSlots, stateOne); err == nil {
+		t.Fatal("out-of-range gamepad slot was accepted")
+	}
+}

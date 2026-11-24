@@ -14,6 +14,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.util.Base64
+import android.view.WindowManager
 import android.webkit.JavascriptInterface
 import android.webkit.MimeTypeMap
 import android.webkit.WebChromeClient
@@ -283,6 +284,17 @@ class MainActivity : Activity() {
         fun setScreenMode(mode: String) {
             mainHandler.post {
                 if (mode == "landscape") enterImmersiveLandscape() else leaveImmersiveLandscape()
+            }
+        }
+
+        @JavascriptInterface
+        fun setKeepScreenOn(enabled: Boolean) {
+            mainHandler.post {
+                if (enabled) {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                } else {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
             }
         }
 
@@ -594,6 +606,7 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         pendingFileChooser?.onReceiveValue(null)
         pendingFileChooser = null
         pendingExportContent = null

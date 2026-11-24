@@ -17,12 +17,26 @@ type GamepadState struct {
 	Buttons      []string `json:"buttons"`
 }
 
+// MaxGamepadSlots bounds the number of simultaneous virtual controllers a
+// backend may expose. The server assigns one slot per authenticated phone.
+const MaxGamepadSlots = 4
+
 // GamepadBackend is optional: a platform can still support mouse/keyboard when
 // no suitable virtual gamepad interface is available.
 type GamepadBackend interface {
 	GamepadAvailable() bool
 	SetGamepadState(GamepadState) error
 	ResetGamepad() error
+}
+
+// GamepadSlotBackend is implemented by backends that expose more than one
+// virtual controller. Slot 0 is the primary controller; SetGamepadState and
+// ResetGamepad keep operating on that slot for older callers.
+type GamepadSlotBackend interface {
+	GamepadBackend
+	GamepadSlotCount() int
+	SetGamepadStateSlot(slot int, state GamepadState) error
+	ResetGamepadSlot(slot int) error
 }
 
 // GamepadStatusProvider returns a human-readable explanation for the

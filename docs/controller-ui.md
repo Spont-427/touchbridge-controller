@@ -1,4 +1,4 @@
-# Controller UI and profiles (0.6.0)
+# Controller UI and profiles (0.7.0)
 
 The Android application bundles the shared controller UI locally under `app/src/main/assets/controller/`. The library, profiles, layout editor, stick settings and controller preview work without a desktop server. A server is needed only to transmit controller, keyboard or mouse state to a PC.
 
@@ -7,7 +7,7 @@ The same UI is served by the desktop server for browser preview, with Android-sp
 ## Screens and navigation
 
 - **Home / Layouts:** portrait library of installed layouts with **Play** and **Edit** actions, plus bottom navigation to **Computers** and **Settings**.
-- **Controller:** dedicated landscape, immersive-fullscreen play surface.
+- **Controller:** dedicated landscape, immersive-fullscreen play surface. The connection HUD identifies the assigned player slot (`P1`–`P4`).
 - **Layout Studio:** separate landscape, immersive-fullscreen editor. **Done** returns to the screen that opened it (Home or Manage layouts).
 - **Computers:** discovery, manual address entry, pairing and saved servers.
 - **Settings:** separate Appearance, Controls & haptics, Analog sticks and About screens.
@@ -21,6 +21,8 @@ Android system Back is handled inside the UI:
 - Manage layouts → Settings.
 - Computers / Tools / Settings → Home.
 - Home → exits the app.
+
+The controller keeps the Android display awake by default while this screen is open. The setting can be disabled under **Settings → Controls & haptics**; it is cleared when leaving the controller, when the page is hidden and when the activity is destroyed.
 
 The controller no longer has an on-screen back chip. The system Back gesture is the supported way to leave the play surface, which keeps the controller free of chrome that can overlap controls.
 
@@ -110,7 +112,7 @@ Invalid imports leave the existing layout untouched.
 
 ## Play screen
 
-The controller fills the viewport in landscape. A compact connection pill and latency indicator sit at the top centre so they do not cover the corner triggers. The latency indicator displays rolling median RTT in milliseconds; its details show p95 and jitter. RTT is round-trip time, not one-way input-to-display latency. Browser chrome, the app's bottom navigation and the editor tools are hidden.
+The controller fills the viewport in landscape. A compact player badge, connection pill and latency indicator sit in the top HUD so they do not cover the corner triggers. When connected to a multiplayer server, the badge displays `P1` through `P4`, and the connection status reports the assigned player number. The latency indicator displays rolling median RTT in milliseconds; its details show p95 and jitter. RTT is round-trip time, not one-way input-to-display latency. Browser chrome, the app's bottom navigation and the editor tools are hidden.
 
 - Controls remain tactile in offline preview mode: sticks move and buttons highlight locally.
 - Network state is sent only when the connection is authenticated and the selected server advertises a gamepad backend.
@@ -146,13 +148,13 @@ The origin and knob reset on release, pointer cancellation, window focus loss an
 ## Settings
 
 - **Appearance:** `System`, `Dark`, `AMOLED black` or `Light`, persisted on the device. System follows the OS colour scheme. Dark uses a neutral `#0f141b` background; AMOLED black is pure black; Light uses a paper surface. Native system-bar icons follow the selected theme.
-- **Controls & haptics:** button vibration, analog/digital LT/RT mode, gyro steering enable/invert and neutral calibration. Gyro steering requires a steering wheel in the active layout.
+- **Controls & haptics:** button vibration, keep screen on, analog/digital LT/RT mode, gyro steering enable/invert and neutral calibration. Keep screen on is enabled by default only while the controller screen is open. Gyro steering requires a steering wheel in the active layout.
 - **Analog sticks:** centre mode, activation range, radial deadzone and response curve.
 - **About:** app and connected server versions, connection state, gamepad backend availability and a link to the project repository.
 
 ## Storage
 
-Layout data is local to the app's WebView origin. The keys used by 0.6.0 are:
+Layout data is local to the app's WebView origin. The keys used by 0.7.0 are:
 
 | Key | Purpose |
 | --- | --- |
@@ -161,6 +163,7 @@ Layout data is local to the app's WebView origin. The keys used by 0.6.0 are:
 | `touchbridge.lastProfile` | Last selected layout ID. |
 | `touchbridge.theme` | `system`, `dark`, `amoled` or `light`. |
 | `touchbridge.haptics` | Button haptics on/off. |
+| `touchbridge.keepScreenOn` | Whether to keep the display awake while the controller screen is open; defaults to enabled. |
 | `touchbridge.triggerMode` | `analog` or `digital`. Pedals remain analog. |
 | `touchbridge.gyro.enabled` | Whether gyro steering is enabled. |
 | `touchbridge.gyro.invert` | Whether gyro steering direction is inverted. |

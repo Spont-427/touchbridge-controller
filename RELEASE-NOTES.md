@@ -1,35 +1,39 @@
-# TouchBridge 0.7.0
+# TouchBridge 0.8.0
 
-TouchBridge 0.7.0 adds multiplayer controller sessions and screen-awake support.
+TouchBridge 0.8.0 adds in-app Android updates and controller usability refinements.
 
 ## Highlights
 
-### Multiplayer controllers
+### In-app updates
 
-- Connect up to four phones to one desktop server at the same time.
-- Each phone is assigned the next available player slot and shown as `P1`–`P4` in the controller HUD.
-- Linux creates up to four `/dev/uinput` gamepads; Windows creates up to four ViGEmBus-backed Xbox 360-compatible controllers.
-- A fifth connection receives `controller_busy` while all slots are occupied. Disconnected slots are reused.
-- Disconnecting one phone releases only that player's gamepad and held desktop keys/buttons. Shared keys or mouse buttons remain held while another connected player still owns them.
+- Check the latest stable GitHub release from **Settings → About**.
+- See update status and download progress.
+- Before opening Android's installer, verify the APK package name, version, version code and signing certificate.
+- Installation remains under the user's control; TouchBridge does not silently install updates.
+- Stable updates must be signed with the same private release key. Debug APKs are separate tester builds.
 
-### Keep screen on
+### Controller and layout improvements
 
-- The phone display stays awake by default while the controller screen is open.
-- A persistent **Keep screen on** toggle is available under **Settings → Controls & haptics**.
-- Android applies `FLAG_KEEP_SCREEN_ON` through the native bridge and clears it when leaving the controller or destroying the activity.
+- Make JSON layout import work with a wider range of Android document providers.
+- Use a `FileReader` fallback when `Blob.text()` is unavailable.
+- Migrate old `Stick click L/R` labels to `L3/R3 click` in saved and imported layouts.
+- In adaptive mode, move the whole stick face to the first touch point and keep it there until release.
+- Keep the active adaptive stick above nearby controls.
+- Shorten long button labels to fit the control.
+- Add a native Android launcher icon using the TouchBridge brand mark.
 
 ## Downloads
 
-The `v0.7.0` stable release should include:
+The `v0.8.0` stable release should include:
 
-- **Android stable:** `TouchBridge-0.7.0.apk` — signed with the same private release key used for v0.6.0.
-- **Android debug:** `TouchBridge-0.7.0-debug.apk` — debug-signed, attached automatically for testers.
+- **Android stable:** `TouchBridge-0.8.0.apk` — signed with the same private release key used for v0.7.0.
+- **Android debug:** `TouchBridge-0.8.0-debug.apk` — debug-signed and attached automatically for testers.
 - **Windows x64:** `TouchBridge-Windows-x64.zip` — attached by GitHub Actions.
 - **Linux x86_64:** `TouchBridge-Linux-x86_64.tar.gz` — attached by GitHub Actions.
 - **Linux ARM64:** `TouchBridge-Linux-ARM64.tar.gz` — attached by GitHub Actions.
 
-Build the stable APK with `scripts/build-android-release.sh` and the existing private release keystore. Do not create a new signing key for this update.
+Build the stable APK with `scripts/build-android-release.sh` and the existing private release keystore. Do not create a new signing key.
 
 ## Validation boundary
 
-Automated tests cover slot assignment, the four-controller limit, slot reuse, per-player gamepad resets, shared keyboard/mouse ownership, screen-awake bridge calls and Android/web asset parity. Physical testing is still required with four phones, four gamepad devices on each desktop OS, and Android sleep/resume behaviour before publication.
+Automated source checks cover Go, JavaScript, shell scripts, DOM references, shared Android/web assets and desktop cross-compilation. The Android Gradle build and update installation flow must pass CI and be tested on a real Android device before publication. In particular, test updating from the signed v0.7.0 stable APK to v0.8.0 with the same release key.

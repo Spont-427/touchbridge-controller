@@ -1,44 +1,55 @@
-# Build status — 0.7.0
+# Build status — 0.8.0
 
-Date: 2026-11-24. Android `versionCode` 13, `versionName` 0.7.0. Desktop server version: 0.7.0.
+Date: 2026-11-25. Android `versionCode` 14, `versionName` 0.8.0. Desktop server version: 0.8.0.
 
-## Included changes
+## Changes included
 
-- Support up to four authenticated phone controllers, each assigned a player slot and dedicated virtual gamepad.
-- Reuse player slots after disconnect and reject a fifth simultaneous controller with `controller_busy` and the configured limit.
-- Scope gamepad resets to the disconnecting player's slot.
-- Track ownership of shared keyboard keys and mouse buttons so one player's disconnect cannot release an input another player is still holding.
-- Add P1–P4 player badges and player-aware connection status in the controller UI.
-- Keep the Android display awake by default while the controller is open, with a persistent setting under Controls & haptics.
-- Set and clear `FLAG_KEEP_SCREEN_ON` through the Android bridge and clear the flag when the activity is destroyed.
-- Update protocol, stability and controller documentation for multiplayer and screen-awake behaviour.
-- Bump Android and desktop version to `0.7.0` (`versionCode` 13) and service-worker shell cache to v10.
+- Add an Android in-app update checker for the latest stable GitHub release.
+- Select the stable or debug APK asset based on the installed build type.
+- Show update status and download progress in Settings → About.
+- Before opening Android's package installer, verify APK package name, version name, increasing version code and signing-certificate fingerprint.
+- Limit downloaded update APKs to 200 MiB and accept only the expected official repository release-asset URL.
+- Improve JSON layout import across Android document providers with inconsistent MIME types and use a FileReader fallback when `Blob.text()` is unavailable.
+- Migrate saved and imported `Stick click L/R` labels to `L3/R3 click`.
+- Change adaptive stick movement so the entire stick face moves to the initial touch point and remains there until release; remove the former activation-range control.
+- Raise the active adaptive stick above neighboring controls and shorten long button labels.
+- Add a proper Android launcher icon, adaptive icon definitions and legacy density resources using the existing TouchBridge mark.
+- Bump Android and desktop version to `0.8.0` (`versionCode` 14) and the service-worker shell cache to v11.
+- Restore executable permissions for the Gradle wrapper and the project's shell scripts.
 
 ## Automated checks run in this workspace
 
-- `gofmt -l .` — passed.
-- `go test -race ./...` — passed across all Go packages, including multiplayer slot, disconnect and shared keyboard/mouse ownership tests.
+- `gofmt -l .` — clean.
+- `go test -race ./...` — passed for all Go packages.
 - `go vet ./...` — passed.
-- Node syntax checks — passed.
-- `node --test internal/web/web/gamepad-core.test.cjs` — 18/18 passed.
+- Node syntax checks for `app.js`, `theme.js` and `gamepad-core.js` — passed.
+- `node --test internal/web/web/gamepad-core.test.cjs` — 17/17 passed.
 - `bash -n Install-TouchBridge-Linux.sh scripts/*.sh` — passed.
-- Web DOM binding audit — 109 direct references, no missing IDs.
-- Android/desktop asset parity — all eight shared assets identical.
-- Cross-compilation — Linux amd64, Linux arm64 and Windows amd64 builds passed.
+- Web DOM audit — 110 direct element references, no missing IDs.
+- Shared Android/web assets — all eight controller assets are byte-for-byte identical.
+- One-second protocol and WebSocket parser fuzz smoke tests — both passed.
+- Linux amd64, Linux arm64 and Windows amd64 desktop cross-compilation — passed.
+- Android manifest and launcher/adaptive icon XML files — well-formed XML.
+- Launcher icon PNG density resources and adaptive foreground were generated from the existing TouchBridge brand mark.
 
-The protocol fuzz smoke test passed for one second. The WebSocket parser fuzz test did not finish within the workspace time limit, so it is not marked as passed. `govulncheck` remains a CI check. This preparation environment did not build the Android APK; the Android Gradle build should run on the release machine or in GitHub Actions.
+This workspace does not have an Android SDK or Gradle installation, so the Android Gradle build and APK verification were not run here. The pull-request CI Android build must pass before merge. `govulncheck` is part of the repository CI workflow and was not run locally.
+
+## Android updater and icon validation still required
+
+- Install the signed v0.7.0 stable APK and verify that it finds the v0.8.0 stable release.
+- Download the v0.8.0 stable APK and verify that the package name, version, version code and signing-certificate checks pass.
+- Confirm Android's installer opens and the user can approve the update without losing app data.
+- Confirm a mismatched or invalid APK is rejected before the installer opens.
+- Test download progress, retry after denied install permission and behavior when GitHub is unavailable or rate-limited.
+- Confirm the native TouchBridge icon appears in the launcher and Android's install confirmation on supported Android versions.
+- Test JSON import using multiple document providers, including providers that report unusual MIME types.
+- Load a layout containing the legacy `Stick click L/R` labels and confirm migration to `L3/R3 click`.
+- Test adaptive-stick movement, overlap stacking and reset on release/cancellation on real phones.
 
 ## Release artifact status
 
-The uploaded project contained a previously built `0.6.0` debug APK. It is not a 0.7.0 artifact and is excluded from the PR-ready source ZIP. Build the new signed stable APK on the release machine with `scripts/build-android-release.sh`, using the exact same private release keystore that signed v0.6.0. Do not create a new signing key. GitHub Actions attaches the new debug APK and Windows/Linux packages when the v0.7.0 release is published; upload the stable signed APK manually.
+The uploaded archive included a previously built v0.7.0 debug APK. It is excluded from the PR-ready source archive and must not be renamed or uploaded as v0.8.0. Build `TouchBridge-0.8.0.apk` on the release machine using the same private release keystore that signed v0.7.0. Do not create a new signing key. The release workflow automatically attaches `TouchBridge-0.8.0-debug.apk` and the Windows/Linux packages; upload the signed stable APK manually.
 
-## Physical-device validation before stable publication
+## Stable update compatibility
 
-- Connect four Android phones at once and verify each receives P1–P4; confirm a fifth is rejected and a freed slot is reused.
-- Test separate gamepad state on four Linux `/dev/uinput` devices and four Windows ViGEmBus providers.
-- Have two phones hold the same keyboard key and mouse button; disconnect one and confirm the input remains held until the other phone releases it.
-- Check the player badge/status, reconnect and idle-timeout cleanup.
-- Verify Keep screen on defaults to enabled only on the controller screen, can be disabled in Settings, and clears after leaving the controller or closing the activity.
-- Test sleep/resume, screen rotation, Android background/foreground transitions and long controller sessions.
-
-Complete this checklist before marking v0.7.0 stable. Automated tests do not replace testing with real phones and desktop backends.
+The in-app updater compares the installed signing-certificate fingerprint with the downloaded APK. Every stable release must be signed using the same private release key and alias. Debug APKs use a separate key and are tester builds; they may need manual replacement if their debug signing key differs. Keep the release keystore and encrypted backups outside the repository.

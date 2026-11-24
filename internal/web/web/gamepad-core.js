@@ -27,26 +27,6 @@
     return { x: outX, y: outY, magnitude: outputMagnitude };
   }
 
-  // In floating/adaptive mode, the touch-down point becomes the temporary
-  // origin. The origin is constrained to a configurable central activation
-  // region so edge touches cannot create an unusably short stick throw.
-  function adaptiveOrigin(x, y, width, height, activationRange = 0.48) {
-    width = Math.max(1, finite(Number(width)));
-    height = Math.max(1, finite(Number(height)));
-    x = clamp(finite(Number(x)), 0, width);
-    y = clamp(finite(Number(y)), 0, height);
-    const cx = width / 2;
-    const cy = height / 2;
-    const radius = Math.min(width, height) / 2;
-    const maxOffset = radius * clamp(finite(Number(activationRange)), 0, 0.8);
-    const dx = x - cx;
-    const dy = y - cy;
-    const distance = Math.hypot(dx, dy);
-    if (distance <= maxOffset || distance === 0) return { x, y };
-    const scale = maxOffset / distance;
-    return { x: cx + dx * scale, y: cy + dy * scale };
-  }
-
   // Trigger controls are vertical pressure surfaces: top = fully pressed,
   // bottom = released. The value is clamped to [0, 1] and kept separate from
   // digital shoulder buttons.
@@ -224,7 +204,7 @@
     return stickSides.has('left') && stickSides.has('right');
   }
 
-  const api = { BUTTONS, clamp, normalizeStick, adaptiveOrigin, triggerPressure, pedalPressure, wheelAxis, steeringFromTilt, snapPercent, findOpenPosition, isInteractiveTarget, PROFILE_META, createProfile, validateLayout };
+  const api = { BUTTONS, clamp, normalizeStick, triggerPressure, pedalPressure, wheelAxis, steeringFromTilt, snapPercent, findOpenPosition, isInteractiveTarget, PROFILE_META, createProfile, validateLayout };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.TouchBridgeGamepad = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

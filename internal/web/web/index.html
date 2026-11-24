@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
   <meta name="theme-color" content="#0b0e13">
-  <script src="/theme.js?v=0.7.0"></script>
+  <script src="/theme.js?v=0.8.0"></script>
   <meta name="description" content="A customizable landscape game controller for Windows and Linux, with mouse and keyboard tools.">
-  <meta name="touchbridge-version" content="0.7.0">
+  <meta name="touchbridge-version" content="0.8.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss: http: https:; object-src 'none'; base-uri 'none';">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/app.css?v=0.7.0">
+  <link rel="stylesheet" href="/app.css?v=0.8.0">
   <title>TouchBridge</title>
 </head>
 <body>
@@ -104,7 +104,7 @@
           <button id="exportLayoutButton" class="secondary-button" type="button">Export</button>
           <button id="importLayoutButton" class="secondary-button" type="button">Import</button>
         </div>
-        <input id="importLayoutFile" type="file" accept="application/json,.json" hidden>
+        <input id="importLayoutFile" type="file" accept=".json,application/json,text/json,text/plain,application/octet-stream" hidden>
         <p id="editorStatus" class="setting-help" role="status">Changes are saved on this phone.</p>
       </aside>
     </section>
@@ -160,8 +160,7 @@
       <header class="screen-header"><button id="sticksBackButton" class="text-button" type="button">← Settings</button><div><span class="eyebrow">ANALOG STICKS</span><h2>Stick behaviour</h2></div></header>
       <section class="settings-group">
         <h3>Position and feel</h3>
-        <label class="settings-row" for="stickCenterMode"><span><strong>Stick centre</strong><small>Adaptive follows your first touch; fixed uses a permanent centre</small></span><select id="stickCenterMode" class="settings-select"><option value="adaptive">Adaptive</option><option value="fixed">Fixed</option></select></label>
-        <label class="settings-range-row" for="centerRange"><span>Adaptive activation range <output id="centerRangeValue">48%</output></span><input id="centerRange" class="range" type="range" min="20" max="65" step="1" value="48"></label>
+        <label class="settings-row" for="stickCenterMode"><span><strong>Stick centre</strong><small>Adaptive moves the whole stick to your first touch; fixed keeps it in place</small></span><select id="stickCenterMode" class="settings-select"><option value="adaptive">Adaptive</option><option value="fixed">Fixed</option></select></label>
         <label class="settings-range-row" for="stickDeadzone"><span>Radial deadzone <output id="stickDeadzoneValue">8%</output></span><input id="stickDeadzone" class="range" type="range" min="0" max="25" step="1" value="8"></label>
         <label class="settings-row" for="stickCurve"><span><strong>Response curve</strong><small>How quickly the stick reaches full input</small></span><select id="stickCurve" class="settings-select"><option value="linear">Linear</option><option value="precision">Precision</option><option value="responsive">Responsive</option></select></label>
       </section>
@@ -171,12 +170,19 @@
       <header class="screen-header"><button id="aboutBackButton" class="text-button" type="button">← Settings</button><div><span class="eyebrow">ABOUT</span><h2>TouchBridge</h2></div></header>
       <section class="about-card">
         <div class="about-mark" aria-hidden="true"><span></span><span></span></div>
-        <div><strong>TouchBridge</strong><span id="appVersionValue" class="about-version">Version 0.7.0</span></div>
+        <div><strong>TouchBridge</strong><span id="appVersionValue" class="about-version">Version 0.8.0</span></div>
       </section>
       <section class="settings-group">
         <h3>Project</h3>
         <button id="openRepositoryButton" class="settings-link" type="button"><span><strong>GitHub repository</strong><small>github.com/Spont-427/touchbridge-controller</small></span><span>↗</span></button>
         <p class="setting-help">Controller profiles, layouts and input run locally. Only controller input is sent to a paired computer on your network.</p>
+      </section>
+      <section class="settings-group">
+        <h3>App updates</h3>
+        <div class="about-stat"><span>Update channel</span><strong>Stable releases</strong></div>
+        <button id="checkUpdatesButton" class="secondary-button update-button" type="button">Check for updates</button>
+        <button id="installUpdateButton" class="secondary-button update-button update-install-button" type="button" hidden>Download and install</button>
+        <p id="updateStatus" class="setting-help update-status" role="status">Updates are checked against the project's GitHub Releases.</p>
       </section>
       <section class="settings-group">
         <h3>Diagnostics</h3>
@@ -213,7 +219,7 @@
     <button type="button" class="bottom-nav-item" data-nav-screen="devices"><span class="bottom-nav-icon">▣</span><span>Computers</span></button>
     <button type="button" class="bottom-nav-item" data-nav-screen="settings"><span class="bottom-nav-icon">⚙</span><span>Settings</span></button>
   </nav>
-  <script src="/gamepad-core.js?v=0.7.0" defer></script>
-  <script src="/app.js?v=0.7.0" defer></script>
+  <script src="/gamepad-core.js?v=0.8.0" defer></script>
+  <script src="/app.js?v=0.8.0" defer></script>
 </body>
 </html>

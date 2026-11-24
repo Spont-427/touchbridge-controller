@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.8.0 — 2026-11-25 — in-app updates and controller refinements
+
+- Add an Android in-app update flow that checks the latest stable GitHub release and selects the matching stable or debug APK asset.
+- Show update-check status and download progress in Settings → About. Open Android's package installer only after the download completes.
+- Verify the downloaded APK's package name, release version, increasing version code and signing-certificate fingerprint before offering installation.
+- Require the same stable signing key for future in-app updates; debug builds remain separate tester builds.
+- Improve Android JSON layout import for document providers that do not classify `.json` files consistently. Use a wildcard picker with preferred MIME types and retain web-side validation.
+- Add a `FileReader` fallback for browsers and WebViews without `Blob.text()`.
+- Migrate older `Stick click L` and `Stick click R` layout labels to `L3 click` and `R3 click`, including stored and imported layouts.
+- Change adaptive-stick behaviour so the complete stick face moves to the initial touch point and stays there until release; remove the old activation-range setting.
+- Keep the active stick above nearby controls while the adaptive stick face moves.
+- Shorten long button labels in the editor so newly added controls fit their buttons.
+- Add a native Android launcher icon using the existing TouchBridge brand mark, including adaptive and legacy density resources.
+- Bump Android and desktop version to `0.8.0` (`versionCode` 14) and the service-worker shell cache to v11.
+- Restore executable permissions on the Gradle wrapper and project shell scripts so the documented build and packaging commands work from a clean checkout.
+
 ## 0.7.0 — 2026-11-24 — multiplayer controllers and screen-awake support
 
 - Allow up to four authenticated phones to connect to one desktop server. Each receives the next free player slot (`P1`–`P4`); a fifth receives `controller_busy` with the four-player limit, and disconnected slots are reused.

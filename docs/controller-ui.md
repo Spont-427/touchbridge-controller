@@ -1,4 +1,4 @@
-# Controller UI and profiles (0.7.0)
+# Controller UI and profiles (0.8.0)
 
 The Android application bundles the shared controller UI locally under `app/src/main/assets/controller/`. The library, profiles, layout editor, stick settings and controller preview work without a desktop server. A server is needed only to transmit controller, keyboard or mouse state to a PC.
 
@@ -108,7 +108,7 @@ The importer accepts either a TouchBridge layout v1 document or a raw control ar
 - Finite, in-range positions, sizes and opacity.
 - Exactly one left stick and one right stick.
 
-Invalid imports leave the existing layout untouched.
+Invalid imports leave the existing layout untouched. Android's document picker accepts a broad MIME range because some providers mislabel `.json` files; the UI validates the file content before import. The reader uses `Blob.text()` when available and falls back to `FileReader`.
 
 ## Play screen
 
@@ -137,24 +137,23 @@ The controller fills the viewport in landscape. A compact player badge, connecti
 
 Both sticks support:
 
-- **Adaptive/floating centre:** a touch inside the activation region becomes the temporary origin. The visible centre dot and activation ring move to that origin and render above the moving knob; axis calculations use the same origin. Touches outside the region are clamped to its edge.
-- **Fixed centre:** the origin remains the visual centre of the stick.
+- **Adaptive centre:** the first touch on the stick becomes its centre, and the whole stick face (centre dot, activation ring and knob) shifts to that point for the rest of the gesture. The centre does not follow the finger afterwards; only the knob moves, clamped to the throw radius.
+- **Fixed centre:** the stick stays at its layout position and the origin remains the visual centre.
 - **Radial deadzone:** 0–25%.
 - **Response curves:** linear, precision and responsive.
-- **Activation range:** default 48% of the stick radius, applying to both sticks.
 
-The origin and knob reset on release, pointer cancellation, window focus loss and connection loss.
+Sticks return to their layout position and the knob resets on release, pointer cancellation, window focus loss and connection loss.
 
 ## Settings
 
 - **Appearance:** `System`, `Dark`, `AMOLED black` or `Light`, persisted on the device. System follows the OS colour scheme. Dark uses a neutral `#0f141b` background; AMOLED black is pure black; Light uses a paper surface. Native system-bar icons follow the selected theme.
 - **Controls & haptics:** button vibration, keep screen on, analog/digital LT/RT mode, gyro steering enable/invert and neutral calibration. Keep screen on is enabled by default only while the controller screen is open. Gyro steering requires a steering wheel in the active layout.
-- **Analog sticks:** centre mode, activation range, radial deadzone and response curve.
-- **About:** app and connected server versions, connection state, gamepad backend availability and a link to the project repository.
+- **Analog sticks:** centre mode, radial deadzone and response curve.
+- **About:** app and connected server versions, connection state, gamepad backend availability, a link to the project repository and an App updates section. The Android app checks the latest stable GitHub release, downloads the matching APK, verifies its package/version/version code/signing certificate, then opens Android's installer for user confirmation.
 
 ## Storage
 
-Layout data is local to the app's WebView origin. The keys used by 0.7.0 are:
+Layout data is local to the app's WebView origin. The keys used by 0.8.0 are:
 
 | Key | Purpose |
 | --- | --- |
@@ -168,7 +167,6 @@ Layout data is local to the app's WebView origin. The keys used by 0.7.0 are:
 | `touchbridge.gyro.enabled` | Whether gyro steering is enabled. |
 | `touchbridge.gyro.invert` | Whether gyro steering direction is inverted. |
 | `touchbridge.stick.centerMode` | `adaptive` or `fixed`. |
-| `touchbridge.stick.centerRange` | Activation range percentage. |
 | `touchbridge.stick.deadzone` | Radial deadzone percentage. |
 | `touchbridge.stick.curve` | `linear`, `precision` or `responsive`. |
 | `touchbridge.editor.grid` | Grid visibility in the editor. |

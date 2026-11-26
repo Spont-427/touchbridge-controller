@@ -1,55 +1,41 @@
-# Build status — 0.8.0
+# Build status — 0.9.0
 
-Date: 2026-11-25. Android `versionCode` 14, `versionName` 0.8.0. Desktop server version: 0.8.0.
+Date: 2026-11-26. Android `versionCode` 15, `versionName` 0.9.0. Desktop server version: 0.9.0.
 
 ## Changes included
 
-- Add an Android in-app update checker for the latest stable GitHub release.
-- Select the stable or debug APK asset based on the installed build type.
-- Show update status and download progress in Settings → About.
-- Before opening Android's package installer, verify APK package name, version name, increasing version code and signing-certificate fingerprint.
-- Limit downloaded update APKs to 200 MiB and accept only the expected official repository release-asset URL.
-- Improve JSON layout import across Android document providers with inconsistent MIME types and use a FileReader fallback when `Blob.text()` is unavailable.
-- Migrate saved and imported `Stick click L/R` labels to `L3/R3 click`.
-- Change adaptive stick movement so the entire stick face moves to the initial touch point and remains there until release; remove the former activation-range control.
-- Raise the active adaptive stick above neighboring controls and shorten long button labels.
-- Add a proper Android launcher icon, adaptive icon definitions and legacy density resources using the existing TouchBridge mark.
-- Bump Android and desktop version to `0.8.0` (`versionCode` 14) and the service-worker shell cache to v11.
-- Restore executable permissions for the Gradle wrapper and the project's shell scripts.
+- Redesign the portrait layout library with controller previews, a current-layout marker and clearer Play/Edit actions.
+- Rework computer discovery and manual pairing instructions, labels, and saved/nearby computer sections.
+- Reorganize Settings into clearer groups with updated labels and descriptions.
+- Replace portrait-interface text-glyph icons with consistent inline SVGs and align settings icon containers.
+- Start newly opened screens at the top; add subtle transitions that respect reduced-motion preferences.
+- Recreate the centered phone mark for the Layouts header and Android launcher icon, including adaptive and density-specific resources.
+- Add Material 3-inspired light, dark and AMOLED surfaces, larger touch targets, visible focus styles and safe-area spacing.
+- Add the design-system reference and update Android UI documentation.
+- Keep the landscape controller and layout editor visuals outside the redesign.
+- Bump Android and desktop version to `0.9.0` (`versionCode` 15) and the service-worker shell cache to v14.
 
-## Automated checks run in this workspace
+## Validation
 
-- `gofmt -l .` — clean.
-- `go test -race ./...` — passed for all Go packages.
-- `go vet ./...` — passed.
-- Node syntax checks for `app.js`, `theme.js` and `gamepad-core.js` — passed.
-- `node --test internal/web/web/gamepad-core.test.cjs` — 17/17 passed.
-- `bash -n Install-TouchBridge-Linux.sh scripts/*.sh` — passed.
-- Web DOM audit — 110 direct element references, no missing IDs.
-- Shared Android/web assets — all eight controller assets are byte-for-byte identical.
-- One-second protocol and WebSocket parser fuzz smoke tests — both passed.
-- Linux amd64, Linux arm64 and Windows amd64 desktop cross-compilation — passed.
-- Android manifest and launcher/adaptive icon XML files — well-formed XML.
-- Launcher icon PNG density resources and adaptive foreground were generated from the existing TouchBridge brand mark.
+`FUZZ_TIME=1x ./scripts/check.sh` — passed all nine stages. This includes `gofmt`, `go test -race ./...`, `go vet ./...`, JavaScript syntax checks, 17/17 Node tests, shell syntax, 110 DOM references, one-iteration protocol and WebSocket fuzz smoke tests, and byte-for-byte Android/web asset parity. `govulncheck` is not installed locally; CI runs the vulnerability scan. GitHub Actions must also pass the Android Gradle build and CI jobs before merge.
 
-This workspace does not have an Android SDK or Gradle installation, so the Android Gradle build and APK verification were not run here. The pull-request CI Android build must pass before merge. `govulncheck` is part of the repository CI workflow and was not run locally.
+The release author reports that the updated Android APK built successfully and was reviewed in an Android Virtual Device (AVD). This workspace does not have an Android SDK configured, so that build was not independently reproduced here. Generated APKs and Android build directories are excluded from the PR source package.
 
-## Android updater and icon validation still required
+## Stable release requirements
 
-- Install the signed v0.7.0 stable APK and verify that it finds the v0.8.0 stable release.
-- Download the v0.8.0 stable APK and verify that the package name, version, version code and signing-certificate checks pass.
-- Confirm Android's installer opens and the user can approve the update without losing app data.
-- Confirm a mismatched or invalid APK is rejected before the installer opens.
-- Test download progress, retry after denied install permission and behavior when GitHub is unavailable or rate-limited.
-- Confirm the native TouchBridge icon appears in the launcher and Android's install confirmation on supported Android versions.
-- Test JSON import using multiple document providers, including providers that report unusual MIME types.
-- Load a layout containing the legacy `Stick click L/R` labels and confirm migration to `L3/R3 click`.
-- Test adaptive-stick movement, overlap stacking and reset on release/cancellation on real phones.
+- Build `TouchBridge-0.9.0.apk` on the release machine with `scripts/build-android-release.sh`.
+- Sign it with the exact same private release keystore and alias that signed v0.8.0. Do not create a new key.
+- Upload the signed stable APK manually to the GitHub `v0.9.0` release. The release workflow attaches the debug APK and desktop packages.
+- Keep the release keystore, passwords and generated APKs outside the source repository.
 
-## Release artifact status
+## Final review
 
-The uploaded archive included a previously built v0.7.0 debug APK. It is excluded from the PR-ready source archive and must not be renamed or uploaded as v0.8.0. Build `TouchBridge-0.8.0.apk` on the release machine using the same private release keystore that signed v0.7.0. Do not create a new signing key. The release workflow automatically attaches `TouchBridge-0.8.0-debug.apk` and the Windows/Linux packages; upload the signed stable APK manually.
-
-## Stable update compatibility
-
-The in-app updater compares the installed signing-certificate fingerprint with the downloaded APK. Every stable release must be signed using the same private release key and alias. Debug APKs use a separate key and are tester builds; they may need manual replacement if their debug signing key differs. Keep the release keystore and encrypted backups outside the repository.
+- [ ] PR CI, including Android Gradle build, passes.
+- [ ] Confirm the new launcher icon appears in the built APK.
+- [ ] Verify light, dark and AMOLED rendering on the supported Android versions.
+- [ ] Check layout-card Play/Edit actions and the current-layout indicator.
+- [ ] Check saved/nearby discovery and manual pairing copy and flow.
+- [ ] Check Settings groups, focus styling, touch targets and safe-area insets.
+- [ ] Confirm new screens open at the top and that reduced-motion disables transitions.
+- [ ] Confirm the controller and layout editor remain visually unchanged.
+- [ ] Test the signed v0.8.0 → v0.9.0 in-place update with app data preserved.

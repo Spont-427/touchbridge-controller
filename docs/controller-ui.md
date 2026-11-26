@@ -1,8 +1,10 @@
-# Controller UI and profiles (0.8.0)
+# Controller UI and profiles (0.9.0)
 
 The Android application bundles the shared controller UI locally under `app/src/main/assets/controller/`. The library, profiles, layout editor, stick settings and controller preview work without a desktop server. A server is needed only to transmit controller, keyboard or mouse state to a PC.
 
 The same UI is served by the desktop server for browser preview, with Android-specific bridges for orientation, haptics, native file dialogs and secure token storage.
+
+The portrait library, connection flow, settings, layout manager and utility screens use the shared Material 3-inspired design system documented in `design-system/touchbridge/MASTER.md`. It uses tonal purple surfaces, consistent spacing, aligned inline SVG icons and 48 dp touch targets. The landscape controller and layout editor remain outside that styling scope.
 
 ## Screens and navigation
 
@@ -10,7 +12,7 @@ The same UI is served by the desktop server for browser preview, with Android-sp
 - **Controller:** dedicated landscape, immersive-fullscreen play surface. The connection HUD identifies the assigned player slot (`P1`–`P4`).
 - **Layout Studio:** separate landscape, immersive-fullscreen editor. **Done** returns to the screen that opened it (Home or Manage layouts).
 - **Computers:** discovery, manual address entry, pairing and saved servers.
-- **Settings:** separate Appearance, Controls & haptics, Analog sticks and About screens.
+- **Settings:** separate Appearance, Buttons & feedback, Stick response and About screens.
 - **Layouts manager:** portrait list of every installed layout with management actions.
 - **Tools:** optional mouse and keyboard screen, secondary to the gamepad flow.
 
@@ -22,7 +24,7 @@ Android system Back is handled inside the UI:
 - Computers / Tools / Settings → Home.
 - Home → exits the app.
 
-The controller keeps the Android display awake by default while this screen is open. The setting can be disabled under **Settings → Controls & haptics**; it is cleared when leaving the controller, when the page is hidden and when the activity is destroyed.
+The controller keeps the Android display awake by default while this screen is open. The setting can be disabled under **Settings → Buttons & feedback**; it is cleared when leaving the controller, when the page is hidden and when the activity is destroyed.
 
 The controller no longer has an on-screen back chip. The system Back gesture is the supported way to leave the play surface, which keeps the controller free of chrome that can overlap controls.
 
@@ -32,9 +34,15 @@ The home library is rendered from the installed layout registry instead of a fix
 
 - Presets: **Xbox-style**, **GTA V**, **Red Dead Redemption 2** and **Forza Horizon**.
 - Custom layouts, appended in creation order.
-- The header count reads `4 PRESETS` when no custom layouts exist, or `4 PRESETS · 2 CUSTOM` otherwise.
-- Presets keep their themed artwork; custom layouts use the generic controller art.
-- Every card can be played or edited. Renaming or deleting a layout updates the library immediately.
+- The library uses clearer layout cards with a controller preview, a visible `In use` marker for the active layout, and explicit **Play** and **Edit** actions. Presets keep their named artwork while custom layouts use a consistent controller preview. The header count reads `4 presets` when no custom layouts exist, or `4 presets · 2 custom` otherwise. Renaming or deleting a layout updates the library immediately.
+
+## Computers and pairing
+
+The Computers screen separates saved computers from nearby discoveries. The introductory copy explains same-network discovery and automatic reconnection after first pairing. **Scan network** starts discovery; manual pairing uses a clearly labelled computer-address field and the six-digit PIN displayed by the desktop server. Saved entries remain available on the phone and can be forgotten from the list.
+
+## Settings and appearance
+
+The Settings screen groups destinations into **Controller** and **Tools & support**. Each destination uses a labelled icon, title and short description. Appearance offers System, Light, Dark and AMOLED black themes. The library, pairing and settings surfaces use the shared Material 3-inspired tonal palette; touch targets, focus outlines and safe-area spacing are designed for accessibility.
 
 ## Layout management
 
@@ -110,6 +118,10 @@ The importer accepts either a TouchBridge layout v1 document or a raw control ar
 
 Invalid imports leave the existing layout untouched. Android's document picker accepts a broad MIME range because some providers mislabel `.json` files; the UI validates the file content before import. The reader uses `Blob.text()` when available and falls back to `FileReader`.
 
+## Navigation and motion
+
+Opening a new screen starts at its top rather than inheriting the previous screen's scroll offset. Returning from a settings detail screen restores the Settings list position. Portrait-screen transitions use a short fade-and-rise animation; the animation and related transitions are disabled when `prefers-reduced-motion: reduce` is active. The immersive landscape controller and Layout Studio retain their existing visual treatment.
+
 ## Play screen
 
 The controller fills the viewport in landscape. A compact player badge, connection pill and latency indicator sit in the top HUD so they do not cover the corner triggers. When connected to a multiplayer server, the badge displays `P1` through `P4`, and the connection status reports the assigned player number. The latency indicator displays rolling median RTT in milliseconds; its details show p95 and jitter. RTT is round-trip time, not one-way input-to-display latency. Browser chrome, the app's bottom navigation and the editor tools are hidden.
@@ -129,7 +141,7 @@ The controller fills the viewport in landscape. A compact player badge, connecti
 - Feedback fires on **button pointer-down**, not on release and not when dragging sticks.
 - The Android bridge uses `VibrationEffect.createPredefined(EFFECT_CLICK)` on Android 10+ with touch usage on Android 13+, a 22 ms one-shot on Android 8–9, and a legacy 22 ms vibration below that.
 - The short 9 ms vibration used in earlier builds was below the perceptible threshold on many phone motors, which made it appear that haptics only arrived after WebView's long-press feedback.
-- **Settings → Controls & haptics → Button haptics** is checked at press time. When it is off, no vibration request reaches Android.
+- **Settings → Buttons & feedback → Button haptics** is checked at press time. When it is off, no vibration request reaches Android.
 - Long-press context menus on the controller surface are suppressed so a held control does not add delayed native feedback.
 - Haptics are optional and failures in the bridge never block input.
 
@@ -146,14 +158,14 @@ Sticks return to their layout position and the knob resets on release, pointer c
 
 ## Settings
 
-- **Appearance:** `System`, `Dark`, `AMOLED black` or `Light`, persisted on the device. System follows the OS colour scheme. Dark uses a neutral `#0f141b` background; AMOLED black is pure black; Light uses a paper surface. Native system-bar icons follow the selected theme.
-- **Controls & haptics:** button vibration, keep screen on, analog/digital LT/RT mode, gyro steering enable/invert and neutral calibration. Keep screen on is enabled by default only while the controller screen is open. Gyro steering requires a steering wheel in the active layout.
-- **Analog sticks:** centre mode, radial deadzone and response curve.
+- **Appearance:** `System`, `Dark`, `AMOLED black` or `Light`, persisted on the device. System follows the OS colour scheme. The Material 3-inspired browse/settings palette uses a `#141218` dark background, pure black for AMOLED, and `#f7f5fa` for Light. Native system-bar colors follow the selected theme.
+- **Buttons & feedback:** button vibration, keep screen on, analog/digital LT/RT mode, gyro steering enable/invert and neutral calibration. Keep screen on is enabled by default only while the controller screen is open. Gyro steering requires a steering wheel in the active layout.
+- **Stick response:** centre mode, radial deadzone and response curve.
 - **About:** app and connected server versions, connection state, gamepad backend availability, a link to the project repository and an App updates section. The Android app checks the latest stable GitHub release, downloads the matching APK, verifies its package/version/version code/signing certificate, then opens Android's installer for user confirmation.
 
 ## Storage
 
-Layout data is local to the app's WebView origin. The keys used by 0.8.0 are:
+Layout data is local to the app's WebView origin. The keys used by 0.9.0 are:
 
 | Key | Purpose |
 | --- | --- |

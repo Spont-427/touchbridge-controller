@@ -194,7 +194,7 @@ body{padding:0;background:#000;overscroll-behavior:none}
 .toggle-input:checked{background:#d8e0e9;border-color:#d8e0e9}
 .toggle-input:checked:after{transform:translateX(17px);background:#101419}
 .settings-link{width:100%;display:flex;justify-content:space-between;align-items:center;padding:13px 0;border:0;border-bottom:1px solid #171c22;background:transparent;color:#e5e9ef;text-align:left}
-.settings-link span:first-child{display:flex;flex-direction:column;gap:4px}
+.settings-link > span:first-child:not(.settings-link-icon){display:flex;flex-direction:column;gap:4px}
 .settings-link strong{font-size:12px;font-weight:600}
 .settings-link small{color:#727d8a;font-size:10px}
 .settings-link>span:last-child{font-size:23px;color:#75808d}
@@ -587,7 +587,7 @@ html[data-theme="light"] .editor-advanced-actions .danger-button { background: #
 html[data-theme="light"] .editor-advanced-panel .setting-help { color: #707b88; }
 html[data-theme="light"] .editor-advanced-panel .text-button { color: #4a525b; }
 
-/* 0.8.0 — stable in-app updates and controller refinements. */
+/* 0.9.0 — Material 3-inspired Android UI refresh. */
 
 /* Dark is a soft near-black workspace rather than true OLED black. The default
    AMOLED palette above remains available as an explicit theme. */
@@ -679,3 +679,375 @@ html[data-theme="dark"] .editor-advanced-panel { background: #0d131af2; border-c
 html[data-theme="dark"] .play-hud .player-badge { background: #0d131ae8; border-color: #2c3a47; }
 html[data-theme="light"] .play-hud .player-badge { background: #ffffffdd; border-color: #d2d7db; color: #31566b; }
 @media (max-width: 430px) { .wheel-rim { border-width: 7px; } .play-hud .ping-indicator { min-width: 50px; padding: 0 6px; } .play-hud .player-badge { height: 27px; padding: 0 7px; } }
+
+/* Material 3 app surfaces. The immersive controller and layout editor remain
+   on their existing styles; these tokens only dress the browse and settings flow. */
+:root {
+  --ui-primary: #6750a4;
+  --ui-on-primary: #ffffff;
+  --ui-primary-container: #eaddff;
+  --ui-on-primary-container: #21005d;
+  --ui-secondary: #625b71;
+  --ui-secondary-container: #e8def8;
+  --ui-on-secondary-container: #1d192b;
+  --ui-background: #f7f5fa;
+  --ui-surface: #f7f5fa;
+  --ui-surface-low: #f1eef5;
+  --ui-surface-container: #eeebf2;
+  --ui-surface-high: #e8e5ec;
+  --ui-on-surface: #1d1b20;
+  --ui-on-surface-variant: #49454f;
+  --ui-outline: #79747e;
+  --ui-outline-variant: #cac4d0;
+  --ui-error: #b3261e;
+  --ui-on-error: #ffffff;
+  --ui-scheme: light;
+}
+html[data-theme="dark"] {
+  --ui-primary: #d0bcff;
+  --ui-on-primary: #381e72;
+  --ui-primary-container: #4f378b;
+  --ui-on-primary-container: #eaddff;
+  --ui-secondary: #ccc2dc;
+  --ui-secondary-container: #4a4458;
+  --ui-on-secondary-container: #e8def8;
+  --ui-background: #141218;
+  --ui-surface: #141218;
+  --ui-surface-low: #1d1b20;
+  --ui-surface-container: #211f26;
+  --ui-surface-high: #2b2930;
+  --ui-on-surface: #e6e1e9;
+  --ui-on-surface-variant: #cac4d0;
+  --ui-outline: #938f99;
+  --ui-outline-variant: #49454f;
+  --ui-error: #f2b8b5;
+  --ui-on-error: #601410;
+  --ui-scheme: dark;
+}
+html[data-theme="amoled"] {
+  --ui-primary: #d0bcff;
+  --ui-on-primary: #381e72;
+  --ui-primary-container: #4f378b;
+  --ui-on-primary-container: #eaddff;
+  --ui-secondary: #ccc2dc;
+  --ui-secondary-container: #4a4458;
+  --ui-on-secondary-container: #e8def8;
+  --ui-background: #000000;
+  --ui-surface: #000000;
+  --ui-surface-low: #0c0b0f;
+  --ui-surface-container: #121116;
+  --ui-surface-high: #1d1b20;
+  --ui-on-surface: #e6e1e9;
+  --ui-on-surface-variant: #cac4d0;
+  --ui-outline: #938f99;
+  --ui-outline-variant: #49454f;
+  --ui-error: #f2b8b5;
+  --ui-on-error: #601410;
+  --ui-scheme: dark;
+}
+html[data-theme="light"] {
+  --ui-background: #f7f5fa;
+  --ui-surface: #f7f5fa;
+}
+html, body { background: var(--ui-background) !important; color: var(--ui-on-surface); }
+.app-shell {
+  width: min(100%, 760px);
+  min-height: 100svh;
+  padding: 24px 20px calc(104px + env(safe-area-inset-bottom));
+  background: var(--ui-background) !important;
+  color: var(--ui-on-surface);
+  color-scheme: var(--ui-scheme);
+  font-family: Roboto, "Arial", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+#homeScreen, #devicesScreen, #settingsScreen, #appearanceScreen, #controlsScreen,
+#sticksScreen, #aboutScreen, #layoutsScreen, #toolsScreen { color: var(--ui-on-surface); }
+#homeScreen[hidden], #devicesScreen[hidden], #settingsScreen[hidden], #appearanceScreen[hidden],
+#controlsScreen[hidden], #sticksScreen[hidden], #aboutScreen[hidden], #layoutsScreen[hidden],
+#toolsScreen[hidden] { display: none !important; }
+.ui-icon, .bottom-nav-icon svg, .settings-link-icon svg, .settings-chevron,
+.mode-tab svg, .icon-button svg, .device-icon svg {
+  width: 24px;
+  height: 24px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: 0 0 auto;
+}
+.home-header { margin-bottom: 32px; gap: 16px; }
+.brand-lockup { gap: 14px; min-width: 0; }
+.brand-mark { display: flex !important; }
+.brand-copy p { display: block !important; }
+.home-device-shortcut { display: grid !important; }
+.brand-mark { width: 48px; height: 48px; border-radius: 16px; background: var(--ui-primary-container); box-shadow: none; }
+.brand-mark { color: var(--ui-on-primary-container); }
+.brand-mark-icon { width: 32px; height: 32px; display: block; flex: 0 0 auto; overflow: visible; }
+.brand-mark-icon rect { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.brand-mark-icon .brand-mark-dot { fill: currentColor; stroke: none; }
+.brand-copy h1 { margin: 0; color: var(--ui-on-surface); font-size: 20px; line-height: 1.2; font-weight: 600; letter-spacing: 0; }
+.brand-copy p { margin: 4px 0 0; color: var(--ui-on-surface-variant); font-size: 11px; line-height: 1.35; font-weight: 500; letter-spacing: .65px; }
+.icon-button.home-device-shortcut, .icon-button.screen-back {
+  width: 48px; height: 48px; min-width: 48px; min-height: 48px;
+  border: 0; border-radius: 16px; background: var(--ui-secondary-container);
+  color: var(--ui-on-secondary-container); font-size: 0; box-shadow: none;
+}
+.home-section { margin-top: 0; }
+.section-heading { align-items: flex-start; gap: 12px; margin: 0 0 18px; }
+.section-heading h2 { margin: 0; color: var(--ui-on-surface); font-size: 26px; line-height: 1.2; font-weight: 500; letter-spacing: -.35px; }
+.section-description, .screen-description { margin: 6px 0 0; color: var(--ui-on-surface-variant); font-size: 14px; line-height: 1.45; font-weight: 400; }
+.subtle-count { flex: 0 0 auto; margin-top: 3px; padding: 8px 12px; border-radius: 999px; background: var(--ui-secondary-container); color: var(--ui-on-secondary-container); font-size: 12px; line-height: 1.2; font-weight: 600; letter-spacing: 0; }
+.profile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.profile-card, .profile-card-featured {
+  min-width: 0; padding: 12px; border: 1px solid var(--ui-outline-variant);
+  border-radius: 20px; background: var(--ui-surface-low); box-shadow: none;
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+.profile-card:active { transform: none; background: var(--ui-surface-high); }
+.profile-card.is-current { border-color: var(--ui-primary); }
+.profile-art { height: clamp(100px, 28vw, 144px); border-radius: 14px; background: var(--ui-surface-container); }
+.profile-art:after { display: block; background: linear-gradient(145deg, color-mix(in srgb, var(--ui-primary) 14%, transparent), transparent 58%); }
+.profile-art .controller-preview { position: relative; z-index: 1; width: 100%; height: 100%; display: block; color: var(--ui-on-surface-variant); }
+.generic-art, .gta-art, .rdr-art, .forza-art { background-color: var(--ui-surface-container); }
+.profile-card-copy { min-height: 54px; align-items: center; justify-content: space-between; gap: 6px; margin: 12px 2px 10px; }
+.profile-card-copy > div { min-width: 0; }
+.profile-card-copy strong { display: block; overflow: hidden; color: var(--ui-on-surface); font-size: 16px; line-height: 1.3; font-weight: 600; letter-spacing: 0; text-overflow: ellipsis; white-space: nowrap; }
+.profile-card-copy small { display: block; overflow: hidden; margin-top: 3px; color: var(--ui-on-surface-variant); font-size: 13px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.profile-current-label { flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; background: var(--ui-primary-container); color: var(--ui-on-primary-container); font-size: 11px; font-weight: 600; }
+.profile-card-actions { gap: 8px; }
+.profile-card-actions button, #devicesScreen .primary-button, #devicesScreen .secondary-button,
+#layoutsScreen .primary-button, #layoutsScreen .secondary-button, #toolsScreen .secondary-button,
+.settings-screen .primary-button, .settings-screen .secondary-button {
+  min-height: 48px; border: 1px solid transparent; border-radius: 14px; padding: 0 16px;
+  font-family: inherit; font-size: 14px; line-height: 1.25; font-weight: 600;
+  box-shadow: none; touch-action: manipulation; transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+.profile-card-actions button:first-child, #devicesScreen .primary-button, #layoutsScreen .primary-button, .settings-screen .primary-button {
+  background: var(--ui-primary); color: var(--ui-on-primary); border-color: var(--ui-primary);
+}
+.profile-card-actions button:not(:first-child), #devicesScreen .secondary-button, #layoutsScreen .secondary-button,
+#toolsScreen .secondary-button, .settings-screen .secondary-button {
+  background: var(--ui-secondary-container); color: var(--ui-on-secondary-container); border-color: transparent;
+}
+.profile-card-actions button { flex: 1 1 0; min-width: 0; padding-inline: 8px; }
+.profile-card-actions button:active, #devicesScreen button:active, #settingsScreen button:active,
+.settings-screen button:active, #layoutsScreen button:active, #toolsScreen button:active { filter: brightness(.94); }
+.home-utility-row, .home-bottom-grid, .home-footer, .home-hero { display: none !important; }
+.bottom-nav {
+  position: fixed; z-index: 900; left: 0; right: 0; bottom: 0;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  border: 0; border-radius: 24px 24px 0 0; background: var(--ui-surface-container);
+  box-shadow: 0 -4px 18px #0000000a; backdrop-filter: none;
+}
+.bottom-nav[hidden] { display: none !important; }
+.bottom-nav-item {
+  min-width: 0; min-height: 64px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px;
+  border: 0; border-radius: 16px; background: transparent; color: var(--ui-on-surface-variant);
+  font: 500 12px/1.2 Roboto, Arial, system-ui, sans-serif; letter-spacing: 0;
+}
+.bottom-nav-icon { width: 64px; height: 32px; display: grid; place-items: center; border-radius: 999px; color: currentColor; }
+.bottom-nav-icon svg { width: 22px; height: 22px; }
+.bottom-nav-item.active { color: var(--ui-on-surface); background: transparent; }
+.bottom-nav-item.active .bottom-nav-icon { background: var(--ui-primary-container); color: var(--ui-on-primary-container); }
+.sub-screen { min-height: calc(100svh - 96px); padding: 4px 0 112px; }
+.screen-header { justify-content: flex-start; gap: 14px; margin: 0 0 22px; }
+.screen-header-copy { min-width: 0; }
+.screen-header-copy .eyebrow { color: var(--ui-primary); font-size: 12px; line-height: 1.3; font-weight: 600; letter-spacing: .8px; }
+.screen-header h2 { margin: 3px 0 0; color: var(--ui-on-surface); font-size: 26px; line-height: 1.22; font-weight: 500; letter-spacing: -.25px; }
+.screen-header-copy .screen-description { margin-top: 5px; }
+.tiny-status { flex: 0 0 auto; margin-left: auto; padding: 8px 11px; border-radius: 999px; background: var(--ui-surface-high); color: var(--ui-on-surface-variant); font-size: 11px; font-weight: 600; letter-spacing: .3px; }
+.devices-intro, #layoutsScreen .devices-intro {
+  align-items: stretch; flex-direction: column; gap: 16px; padding: 20px;
+  border: 0; border-radius: 24px; background: var(--ui-surface-container); box-shadow: none;
+}
+.devices-intro h3 { margin: 0; color: var(--ui-on-surface); font-size: 18px; line-height: 1.35; font-weight: 600; }
+.devices-intro p { margin: 6px 0 0; color: var(--ui-on-surface-variant); font-size: 14px; line-height: 1.5; }
+.devices-intro #scanButton { width: 100%; }
+.device-section { margin-top: 24px; }
+.device-section .section-heading { align-items: center; margin: 0 0 10px; }
+.device-section h3, .settings-group h3 { margin: 0; color: var(--ui-on-surface); font-size: 16px; line-height: 1.4; font-weight: 600; letter-spacing: 0; text-transform: none; }
+.device-list { display: grid; gap: 8px; }
+.device-row { min-width: 0; display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px; border: 0; border-radius: 18px; background: var(--ui-surface-container); }
+.device-icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; background: var(--ui-primary-container); color: var(--ui-on-primary-container); }
+.device-icon svg { width: 22px; height: 22px; }
+.device-meta { min-width: 0; }
+.device-meta strong { display: block; overflow: hidden; color: var(--ui-on-surface); font-size: 15px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.device-meta small { display: block; overflow: hidden; margin-top: 3px; color: var(--ui-on-surface-variant); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+#devicesScreen .device-row button { min-height: 48px; padding: 0 14px; border: 0; border-radius: 14px; background: var(--ui-primary); color: var(--ui-on-primary); font-size: 14px; font-weight: 600; }
+#devicesScreen .device-row .forget-device { grid-column: 2 / -1; justify-self: end; min-height: 40px; padding: 0 12px; border: 0; background: transparent; color: var(--ui-error); }
+.empty-state { margin: 0; padding: 16px; border: 1px dashed var(--ui-outline-variant); border-radius: 16px; background: var(--ui-surface-low); color: var(--ui-on-surface-variant); font-size: 14px; line-height: 1.5; }
+.pair-card { margin-top: 24px; padding: 20px; border: 0; border-radius: 24px; background: var(--ui-surface-container); box-shadow: none; }
+.pair-card .pair-heading { display: block; }
+.pair-card .pair-heading > * { display: block; }
+.pair-heading .eyebrow { color: var(--ui-primary); font-size: 12px; line-height: 1.3; font-weight: 600; letter-spacing: .8px; }
+.pair-card h3 { margin: 4px 0 0; color: var(--ui-on-surface); font-size: 20px; line-height: 1.3; font-weight: 600; }
+.pair-card p { margin: 6px 0 16px; color: var(--ui-on-surface-variant); font-size: 14px; line-height: 1.5; }
+.manual-address-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin: 0 0 16px; }
+.manual-address-row > label { color: var(--ui-on-surface-variant); font-size: 14px; font-weight: 500; }
+.manual-address-controls { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+#devicesScreen input, .layout-create-row input, .layout-rename-input {
+  min-width: 0; min-height: 52px; padding: 0 16px; border: 1px solid var(--ui-outline);
+  border-radius: 12px; background: var(--ui-surface); color: var(--ui-on-surface);
+  font-family: inherit; font-size: 16px; line-height: 1.4; outline: 0;
+}
+#devicesScreen input::placeholder { color: var(--ui-on-surface-variant); opacity: .82; }
+#devicesScreen input:focus, .layout-create-row input:focus, .layout-rename-input:focus { border: 2px solid var(--ui-primary); padding-inline: 15px; }
+.pin-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.pin-row input { grid-column: 1 / -1; text-align: left; letter-spacing: 4px; font-family: Roboto, Arial, system-ui, sans-serif; font-weight: 600; }
+.pin-row .primary-button { grid-column: 1; }
+.pin-row .secondary-button { grid-column: 2; }
+.hint, .setting-help, .security-note, .settings-footnote { color: var(--ui-on-surface-variant); font-size: 13px; line-height: 1.5; }
+.hint { margin-top: 12px; }
+.security-note { margin: 16px 2px 0; padding: 12px 14px; border-left: 3px solid var(--ui-outline-variant); border-radius: 0 12px 12px 0; background: var(--ui-surface-low); }
+.settings-screen { padding-bottom: 112px; }
+.settings-group { margin: 0 0 16px; padding: 16px 18px 6px; border: 0; border-radius: 24px; background: var(--ui-surface-container); }
+.settings-group h3 { margin: 0 0 6px; }
+.settings-row { min-height: 76px; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--ui-outline-variant); color: var(--ui-on-surface); }
+.settings-group > :last-child { border-bottom: 0; }
+.settings-row > span { gap: 4px; }
+.settings-row strong { color: var(--ui-on-surface); font-size: 16px; line-height: 1.35; font-weight: 500; }
+.settings-row small { color: var(--ui-on-surface-variant); font-size: 13px; line-height: 1.4; }
+.settings-link { width: 100%; min-height: 76px; display: flex; justify-content: flex-start; align-items: center; gap: 14px; padding: 10px 0; border: 0; border-bottom: 1px solid var(--ui-outline-variant); background: transparent; color: var(--ui-on-surface); text-align: left; }
+.settings-link-icon { width: 48px; height: 48px; flex: 0 0 48px; display: grid; place-items: center; align-self: center; border-radius: 16px; background: var(--ui-secondary-container); color: var(--ui-on-secondary-container); line-height: 0; }
+.settings-link-icon svg { width: 22px; height: 22px; }
+.settings-link-copy { min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; gap: 3px; }
+.settings-link strong { color: var(--ui-on-surface); font-size: 16px; line-height: 1.35; font-weight: 500; }
+.settings-link small { color: var(--ui-on-surface-variant); font-size: 13px; line-height: 1.35; }
+.settings-chevron { width: 22px; height: 22px; color: var(--ui-on-surface-variant); }
+.settings-footnote { margin: 16px 4px; }
+.settings-select { max-width: 48%; min-width: 128px; min-height: 48px; padding: 0 36px 0 14px; border: 1px solid var(--ui-outline); border-radius: 12px; background-color: var(--ui-surface); color: var(--ui-on-surface); font: 500 14px/1.3 Roboto, Arial, system-ui, sans-serif; }
+.toggle-input { width: 52px; height: 32px; flex: 0 0 52px; border: 2px solid var(--ui-outline); border-radius: 999px; background: var(--ui-surface-high); }
+.toggle-input:after { top: 3px; left: 3px; width: 22px; height: 22px; background: var(--ui-outline); }
+.toggle-input:checked { border-color: var(--ui-primary); background: var(--ui-primary); }
+.toggle-input:checked:after { transform: translateX(20px); background: var(--ui-on-primary); }
+.settings-range-row { padding: 16px 0; border-bottom: 1px solid var(--ui-outline-variant); color: var(--ui-on-surface); font-size: 14px; }
+.settings-range-row output { color: var(--ui-primary); font-size: 14px; font-weight: 600; }
+.settings-range-row .range, .range { accent-color: var(--ui-primary); }
+.setting-help { margin: 8px 0 12px; }
+.gyro-calibrate, .update-button { width: 100%; margin: 8px 0; }
+.about-card { gap: 14px; margin: 0 0 16px; padding: 18px; border: 0; border-radius: 24px; background: var(--ui-surface-container); }
+.about-mark { width: 48px; height: 48px; flex: 0 0 48px; border-radius: 16px; background: var(--ui-primary-container); }
+.about-mark { display: grid; place-items: center; color: var(--ui-on-primary-container); }
+.about-mark-icon { width: 32px; height: 32px; display: block; overflow: visible; }
+.about-mark-icon rect { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.about-mark-icon .brand-mark-dot { fill: currentColor; stroke: none; }
+.about-card strong { color: var(--ui-on-surface); font-size: 18px; }
+.about-version { color: var(--ui-on-surface-variant); font-size: 13px; }
+.about-stat { min-height: 48px; align-items: center; border-color: var(--ui-outline-variant); color: var(--ui-on-surface-variant); font-size: 14px; }
+.about-stat strong { color: var(--ui-on-surface); font-weight: 500; }
+.update-install-button { background: var(--ui-primary) !important; color: var(--ui-on-primary) !important; }
+.layouts-screen .device-section { margin-top: 24px; }
+.layout-create { padding: 18px; border: 0; border-radius: 20px; background: var(--ui-surface-container); }
+.layout-create > label { color: var(--ui-on-surface-variant); font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.layout-create-row { gap: 8px; }
+.layout-create-row input { flex: 1 1 100%; }
+.layout-manage-list { gap: 10px; }
+.layout-manage-row { min-width: 0; padding: 14px; border: 0; border-radius: 18px; background: var(--ui-surface-container); }
+.layout-manage-copy strong { color: var(--ui-on-surface); font-size: 15px; }
+.layout-manage-copy small { color: var(--ui-on-surface-variant); font-size: 13px; }
+.layout-manage-actions { gap: 4px; }
+.layout-action { min-width: 48px; min-height: 44px; padding: 0 10px; border-radius: 12px; color: var(--ui-primary); font-size: 13px; letter-spacing: 0; }
+.layout-action.danger-link { color: var(--ui-error); }
+#toolsScreen .mode-tabs { gap: 8px; padding: 6px; border: 0; border-radius: 18px; background: var(--ui-surface-container); }
+#toolsScreen .mode-tab { min-height: 48px; gap: 8px; border-radius: 14px; color: var(--ui-on-surface-variant); font: 500 14px/1.25 Roboto, Arial, system-ui, sans-serif; }
+#toolsScreen .mode-tab svg { width: 20px; height: 20px; }
+#toolsScreen .mode-tab.active { background: var(--ui-primary-container); color: var(--ui-on-primary-container); box-shadow: none; }
+#toolsScreen .controller-title h2 { color: var(--ui-on-surface); font-size: 20px; }
+#toolsScreen .micro-label, #toolsScreen .eyebrow { color: var(--ui-on-surface-variant); }
+.mode-tab:focus-visible, .bottom-nav-item:focus-visible, .settings-link:focus-visible,
+.icon-button:focus-visible, .profile-card button:focus-visible, #devicesScreen button:focus-visible,
+#layoutsScreen button:focus-visible, .settings-screen button:focus-visible {
+  outline: 3px solid var(--ui-primary); outline-offset: 3px;
+}
+@media (min-width: 720px) {
+  .app-shell { padding-right: 28px; padding-left: 28px; }
+  .profile-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .profile-art { height: 144px; }
+  .settings-screen, .sub-screen { max-width: 720px; margin-inline: auto; }
+}
+@media (max-width: 390px) {
+  .app-shell { padding-right: 16px; padding-left: 16px; }
+  .home-header { margin-bottom: 26px; }
+  .brand-copy p { font-size: 10px; letter-spacing: .35px; }
+  .profile-grid { gap: 10px; }
+  .profile-card, .profile-card-featured { padding: 9px; border-radius: 18px; }
+  .profile-art { height: 100px; }
+  .profile-card-copy { align-items: flex-start; flex-direction: column; min-height: 64px; gap: 5px; margin: 10px 2px; }
+  .profile-card-copy strong { font-size: 15px; }
+  .profile-card-copy small { font-size: 12px; }
+  .profile-current-label { padding: 4px 7px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .profile-card, .profile-card-actions button, #devicesScreen button, #settingsScreen button,
+  .settings-screen button, #layoutsScreen button, #toolsScreen button { transition: none !important; }
+}
+html[data-theme] body, html[data-theme] .app-shell { background: var(--ui-background) !important; }
+html[data-theme] #homeScreen .profile-card,
+html[data-theme] #homeScreen .profile-card-featured { border-color: var(--ui-outline-variant); background: var(--ui-surface-low); }
+html[data-theme] #homeScreen .profile-card.is-current { border-color: var(--ui-primary); }
+html[data-theme] #homeScreen .profile-art,
+html[data-theme] #homeScreen .generic-art,
+html[data-theme] #homeScreen .gta-art,
+html[data-theme] #homeScreen .rdr-art,
+html[data-theme] #homeScreen .forza-art { background-color: var(--ui-surface-container) !important; }
+html[data-theme] #homeScreen .profile-card-copy strong { color: var(--ui-on-surface); }
+html[data-theme] #homeScreen .profile-card-copy small { color: var(--ui-on-surface-variant); }
+html[data-theme] #homeScreen .profile-card-actions button:first-child { border-color: var(--ui-primary); background: var(--ui-primary); color: var(--ui-on-primary); }
+html[data-theme] #homeScreen .profile-card-actions button:not(:first-child) { border-color: transparent; background: var(--ui-secondary-container); color: var(--ui-on-secondary-container); }
+html[data-theme] #homeScreen .home-device-shortcut,
+html[data-theme] .screen-back { background: var(--ui-secondary-container); color: var(--ui-on-secondary-container); }
+html[data-theme] .bottom-nav { background: var(--ui-surface-container); }
+html[data-theme] .bottom-nav-item { color: var(--ui-on-surface-variant); }
+html[data-theme] .bottom-nav-item.active { color: var(--ui-on-surface); background: transparent; }
+html[data-theme] .bottom-nav-item.active .bottom-nav-icon { background: var(--ui-primary-container); color: var(--ui-on-primary-container); }
+html[data-theme] #devicesScreen .devices-intro,
+html[data-theme] #devicesScreen .device-row,
+html[data-theme] #devicesScreen .pair-card,
+html[data-theme] #devicesScreen .empty-state,
+html[data-theme] #layoutsScreen .devices-intro,
+html[data-theme] #layoutsScreen .layout-create,
+html[data-theme] #layoutsScreen .layout-manage-row { background: var(--ui-surface-container); }
+html[data-theme] #devicesScreen .device-row { border-color: transparent; }
+html[data-theme] #devicesScreen .device-row button { background: var(--ui-primary); color: var(--ui-on-primary); }
+html[data-theme] #devicesScreen .device-row .forget-device { background: transparent; color: var(--ui-error); }
+html[data-theme] #settingsScreen .settings-group,
+html[data-theme] #appearanceScreen .settings-group,
+html[data-theme] #controlsScreen .settings-group,
+html[data-theme] #sticksScreen .settings-group,
+html[data-theme] #aboutScreen .settings-group { border-color: transparent; background: var(--ui-surface-container); }
+html[data-theme] .settings-screen .settings-row,
+html[data-theme] .settings-screen .settings-row strong,
+html[data-theme] .settings-screen .settings-link,
+html[data-theme] .settings-screen .settings-link strong { color: var(--ui-on-surface); }
+html[data-theme] .settings-screen .settings-row small,
+html[data-theme] .settings-screen .settings-link small,
+html[data-theme] .settings-screen .settings-footnote { color: var(--ui-on-surface-variant); }
+html[data-theme] .settings-screen .settings-select { border-color: var(--ui-outline); background-color: var(--ui-surface); color: var(--ui-on-surface); }
+html[data-theme] #aboutScreen .about-card { border-color: transparent; background: var(--ui-surface-container); }
+html[data-theme] #aboutScreen .about-card strong,
+html[data-theme] #aboutScreen .about-stat strong { color: var(--ui-on-surface); }
+html[data-theme] #aboutScreen .about-version,
+html[data-theme] #aboutScreen .about-stat { color: var(--ui-on-surface-variant); }
+html[data-theme] #toolsScreen .mode-tabs { background: var(--ui-surface-container); }
+html[data-theme] #toolsScreen .mode-tab.active { background: var(--ui-primary-container); color: var(--ui-on-primary-container); }
+
+/* Keep screen changes perceptible without animating the gameplay surfaces. */
+@keyframes app-screen-enter {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+#homeScreen:not([hidden]), #devicesScreen:not([hidden]), #settingsScreen:not([hidden]),
+#appearanceScreen:not([hidden]), #controlsScreen:not([hidden]), #sticksScreen:not([hidden]),
+#aboutScreen:not([hidden]), #layoutsScreen:not([hidden]), #toolsScreen:not([hidden]) {
+  animation: app-screen-enter 180ms cubic-bezier(.2, 0, 0, 1) both;
+}
+.bottom-nav-icon { transition: background-color 180ms ease, color 180ms ease; }
+@media (prefers-reduced-motion: reduce) {
+  #homeScreen:not([hidden]), #devicesScreen:not([hidden]), #settingsScreen:not([hidden]),
+  #appearanceScreen:not([hidden]), #controlsScreen:not([hidden]), #sticksScreen:not([hidden]),
+  #aboutScreen:not([hidden]), #layoutsScreen:not([hidden]), #toolsScreen:not([hidden]) { animation: none !important; }
+  .bottom-nav-icon { transition: none !important; }
+}

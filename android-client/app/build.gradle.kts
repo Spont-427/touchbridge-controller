@@ -10,8 +10,8 @@ android {
         applicationId = "io.github.touchbridge.mobile"
         minSdk = 23
         targetSdk = 35
-        versionCode = 14
-        versionName = "0.8.0"
+        versionCode = 15
+        versionName = "0.9.0"
     }
 
     // Keep Java and Kotlin bytecode targets aligned.

@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#0b0e13">
-  <script src="/theme.js?v=0.8.0"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f5fa">
+  <script src="/theme.js?v=0.9.0-md3.2"></script>
   <meta name="description" content="A customizable landscape game controller for Windows and Linux, with mouse and keyboard tools.">
-  <meta name="touchbridge-version" content="0.8.0">
+  <meta name="touchbridge-version" content="0.9.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss: http: https:; object-src 'none'; base-uri 'none';">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/app.css?v=0.8.0">
+  <link rel="stylesheet" href="/app.css?v=0.9.0-md3.2">
   <title>TouchBridge</title>
 </head>
 <body>
@@ -18,16 +18,16 @@
     <section id="homeScreen" class="screen home-screen">
       <header class="home-header">
         <div class="brand-lockup">
-          <div class="brand-mark" aria-hidden="true"><span></span><span></span></div>
-          <div class="brand-copy"><h1>TouchBridge</h1><p>CONTROLLER PROFILES</p></div>
+          <div class="brand-mark" aria-hidden="true"><svg class="brand-mark-icon" viewBox="0 0 24 24" focusable="false"><rect x="7.5" y="2" width="9" height="17" rx="2.8"/><circle class="brand-mark-dot" cx="12" cy="21.3" r="1.1"/></svg></div>
+          <div class="brand-copy"><h1>TouchBridge</h1><p>YOUR PHONE, YOUR CONTROLLER</p></div>
         </div>
         <button id="homeDevicesButton" class="icon-button home-device-shortcut" type="button" aria-label="Computers" title="Computers">⌁</button>
       </header>
 
       <section class="home-section">
         <div class="section-heading">
-          <div><span class="eyebrow">LIBRARY</span><h2>Layouts</h2></div>
-          <span id="libraryCount" class="subtle-count">4 PRESETS</span>
+          <div><h2>Choose a layout</h2><p class="section-description">Pick a setup and start playing.</p></div>
+          <span id="libraryCount" class="subtle-count">4 presets</span>
         </div>
         <div id="profileGrid" class="profile-grid">
         </div>
@@ -37,14 +37,14 @@
     </section>
 
     <section id="devicesScreen" class="screen sub-screen" hidden>
-      <header class="screen-header"><div><span class="eyebrow">CONNECTIONS</span><h2>Computers</h2></div><span id="devicesConnectionBadge" class="tiny-status">OFFLINE</span></header>
-      <div class="devices-intro"><p>Pair once. TouchBridge remembers this phone on that computer, so future connections won't need another PIN.</p><button id="scanButton" class="secondary-button" type="button">Scan network</button></div>
-      <section class="device-section"><div class="section-heading"><h3>Remembered</h3><span class="subtle-count">ON THIS PHONE</span></div><div id="savedServerList" class="device-list"><p class="empty-state">No remembered computers yet.</p></div></section>
-      <section class="device-section"><div class="section-heading"><h3>Nearby</h3><span class="subtle-count">LOCAL NETWORK</span></div><div id="serverList" class="device-list"><p class="empty-state">Scan to find a TouchBridge server.</p></div></section>
+      <header class="screen-header"><div class="screen-header-copy"><span class="eyebrow">CONNECTION</span><h2>Connect a computer</h2><p class="screen-description">Use the same Wi-Fi network as your PC.</p></div><span id="devicesConnectionBadge" class="tiny-status">OFFLINE</span></header>
+      <div class="devices-intro"><div><h3>Find your PC</h3><p>Scan your network. Once paired, this phone will reconnect without asking for a PIN.</p></div><button id="scanButton" class="secondary-button" type="button">Scan network</button></div>
+      <section class="device-section"><div class="section-heading"><h3>Saved computers</h3></div><div id="savedServerList" class="device-list"><p class="empty-state">No saved computers yet. Pair once and they’ll appear here.</p></div></section>
+      <section class="device-section"><div class="section-heading"><h3>Nearby</h3><span class="subtle-count">ON YOUR NETWORK</span></div><div id="serverList" class="device-list"><p class="empty-state">Scan to find a TouchBridge server.</p></div></section>
       <section id="pairCard" class="pair-card">
-        <div><span class="eyebrow">FIRST-TIME PAIRING</span><h3 id="pairTitle">Connect a computer</h3><p id="pairDescription">Select a nearby PC, then enter the six-digit PIN shown in its TouchBridge terminal. You only need to do this once per phone.</p></div>
-        <div class="manual-address-row"><input id="manualAddressInput" type="url" placeholder="http://192.168.1.20:8765" autocomplete="url"><button id="manualAddressButton" class="secondary-button" type="button">Use address</button></div>
-        <div class="pin-row"><label class="visually-hidden" for="pinInput">Six digit pairing PIN</label><input id="pinInput" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit PIN" maxlength="6" pattern="[0-9]{6}" aria-label="Six digit PIN"><button id="connectButton" class="primary-button" type="button">Pair device</button><button id="disconnectButton" class="secondary-button" type="button" disabled>Disconnect</button></div>
+        <div class="pair-heading"><span class="eyebrow">PAIR MANUALLY</span><h3 id="pairTitle">Enter a computer address</h3><p id="pairDescription">If your PC doesn’t appear, enter the address shown in its TouchBridge window.</p></div>
+        <div class="manual-address-row"><label for="manualAddressInput">Computer address</label><div class="manual-address-controls"><input id="manualAddressInput" type="url" placeholder="http://192.168.1.20:8765" autocomplete="url"><button id="manualAddressButton" class="secondary-button" type="button">Use address</button></div></div>
+        <div class="pin-row"><label class="visually-hidden" for="pinInput">Six digit pairing PIN</label><input id="pinInput" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit PIN" maxlength="6" pattern="[0-9]{6}" aria-label="Six digit pairing PIN"><button id="connectButton" class="primary-button" type="button">Pair device</button><button id="disconnectButton" class="secondary-button" type="button" disabled>Disconnect</button></div>
         <p id="connectHint" class="hint" role="status">The PIN is only needed the first time. Your trusted device token is stored securely on Android.</p>
       </section>
       <p class="security-note">Connections use your local network. The current HTTP transport is unencrypted; use trusted private Wi-Fi and never expose the server to the public internet.</p>
@@ -110,24 +110,24 @@
     </section>
 
     <section id="settingsScreen" class="screen sub-screen settings-screen" hidden>
-      <header class="screen-header"><div><span class="eyebrow">PREFERENCES</span><h2>Settings</h2></div></header>
+      <header class="screen-header"><div class="screen-header-copy"><span class="eyebrow">PREFERENCES</span><h2>Settings</h2><p class="screen-description">Make TouchBridge feel right for you.</p></div></header>
       <section class="settings-group">
         <h3>Controller</h3>
-        <button id="settingsAppearanceButton" class="settings-link" type="button"><span><strong>Appearance</strong><small>Theme and visual style</small></span><span>›</span></button>
-        <button id="settingsControlsButton" class="settings-link" type="button"><span><strong>Controls &amp; haptics</strong><small>Triggers, vibration and gyro steering</small></span><span>›</span></button>
-        <button id="settingsSticksButton" class="settings-link" type="button"><span><strong>Analog sticks</strong><small>Centring, deadzone and response curve</small></span><span>›</span></button>
-        <button id="settingsLayoutsButton" class="settings-link" type="button"><span><strong>Manage layouts</strong><small>Create custom layouts, duplicate or delete them</small></span><span>›</span></button>
+        <button id="settingsAppearanceButton" class="settings-link" type="button"><span class="settings-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg></span><span class="settings-link-copy"><strong>Appearance</strong><small>Choose a colour theme</small></span><svg class="settings-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+        <button id="settingsControlsButton" class="settings-link" type="button"><span class="settings-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 8h10a4 4 0 0 1 3.8 2.8l1 3.2a2.7 2.7 0 0 1-4.5 2.7L15 15H9l-2.3 1.7a2.7 2.7 0 0 1-4.5-2.7l1-3.2A4 4 0 0 1 7 8Z"/><path d="M7 11v4m-2-2h4m8-1h.01M18 14h.01"/></svg></span><span class="settings-link-copy"><strong>Buttons &amp; feedback</strong><small>Haptics, triggers and tilt steering</small></span><svg class="settings-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+        <button id="settingsSticksButton" class="settings-link" type="button"><span class="settings-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg></span><span class="settings-link-copy"><strong>Stick response</strong><small>Centre, deadzone and sensitivity curve</small></span><svg class="settings-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+        <button id="settingsLayoutsButton" class="settings-link" type="button"><span class="settings-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg></span><span class="settings-link-copy"><strong>Manage layouts</strong><small>Create, rename or duplicate a setup</small></span><svg class="settings-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
       </section>
       <section class="settings-group">
-        <h3>More</h3>
-        <button id="settingsToolsButton" class="settings-link" type="button"><span><strong>Mouse &amp; keyboard</strong><small>Optional desktop controls</small></span><span>›</span></button>
-        <button id="settingsAboutButton" class="settings-link" type="button"><span><strong>About TouchBridge</strong><small>Version, project link and diagnostics</small></span><span>›</span></button>
+        <h3>Tools &amp; support</h3>
+        <button id="settingsToolsButton" class="settings-link" type="button"><span class="settings-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h.01M11 9h.01M15 9h.01M7 12h.01M11 12h.01M15 12h.01M8 15h8"/></svg></span><span class="settings-link-copy"><strong>Mouse &amp; keyboard</strong><small>Use your phone as a trackpad or keypad</small></span><svg class="settings-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+        <button id="settingsAboutButton" class="settings-link" type="button"><span class="settings-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg></span><span class="settings-link-copy"><strong>About TouchBridge</strong><small>Updates, connection details and help</small></span><svg class="settings-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
       </section>
       <p class="settings-footnote">Preferences are stored on this phone.</p>
     </section>
 
     <section id="appearanceScreen" class="screen sub-screen settings-screen" hidden>
-      <header class="screen-header"><button id="appearanceBackButton" class="text-button" type="button">← Settings</button><div><span class="eyebrow">APPEARANCE</span><h2>Theme</h2></div></header>
+      <header class="screen-header"><button id="appearanceBackButton" class="icon-button screen-back" type="button" aria-label="Back to settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><div class="screen-header-copy"><span class="eyebrow">APPEARANCE</span><h2>Theme</h2></div></header>
       <section class="settings-group">
         <h3>Colour theme</h3>
         <label class="settings-row" for="themeSelect"><span><strong>Theme</strong><small>Follow the system or choose a fixed palette</small></span><select id="themeSelect" class="settings-select"><option value="system">System</option><option value="dark">Dark</option><option value="amoled">AMOLED black</option><option value="light">Light</option></select></label>
@@ -136,7 +136,7 @@
     </section>
 
     <section id="controlsScreen" class="screen sub-screen settings-screen" hidden>
-      <header class="screen-header"><button id="controlsBackButton" class="text-button" type="button">← Settings</button><div><span class="eyebrow">CONTROLS</span><h2>Buttons &amp; triggers</h2></div></header>
+      <header class="screen-header"><button id="controlsBackButton" class="icon-button screen-back" type="button" aria-label="Back to settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><div class="screen-header-copy"><span class="eyebrow">CONTROLS</span><h2>Buttons &amp; feedback</h2></div></header>
       <section class="settings-group">
         <h3>Feedback</h3>
         <label class="settings-row" for="hapticsEnabled"><span><strong>Button haptics</strong><small>Vibrate briefly when a button is pressed</small></span><input id="hapticsEnabled" class="toggle-input" type="checkbox" checked></label>
@@ -157,7 +157,7 @@
     </section>
 
     <section id="sticksScreen" class="screen sub-screen settings-screen" hidden>
-      <header class="screen-header"><button id="sticksBackButton" class="text-button" type="button">← Settings</button><div><span class="eyebrow">ANALOG STICKS</span><h2>Stick behaviour</h2></div></header>
+      <header class="screen-header"><button id="sticksBackButton" class="icon-button screen-back" type="button" aria-label="Back to settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><div class="screen-header-copy"><span class="eyebrow">ANALOG STICKS</span><h2>Stick response</h2></div></header>
       <section class="settings-group">
         <h3>Position and feel</h3>
         <label class="settings-row" for="stickCenterMode"><span><strong>Stick centre</strong><small>Adaptive moves the whole stick to your first touch; fixed keeps it in place</small></span><select id="stickCenterMode" class="settings-select"><option value="adaptive">Adaptive</option><option value="fixed">Fixed</option></select></label>
@@ -167,14 +167,14 @@
     </section>
 
     <section id="aboutScreen" class="screen sub-screen settings-screen" hidden>
-      <header class="screen-header"><button id="aboutBackButton" class="text-button" type="button">← Settings</button><div><span class="eyebrow">ABOUT</span><h2>TouchBridge</h2></div></header>
+      <header class="screen-header"><button id="aboutBackButton" class="icon-button screen-back" type="button" aria-label="Back to settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><div class="screen-header-copy"><span class="eyebrow">ABOUT</span><h2>TouchBridge</h2></div></header>
       <section class="about-card">
-        <div class="about-mark" aria-hidden="true"><span></span><span></span></div>
-        <div><strong>TouchBridge</strong><span id="appVersionValue" class="about-version">Version 0.8.0</span></div>
+        <div class="about-mark" aria-hidden="true"><svg class="brand-mark-icon" viewBox="0 0 24 24" focusable="false"><rect x="7.5" y="2" width="9" height="17" rx="2.8"/><circle class="brand-mark-dot" cx="12" cy="21.3" r="1.1"/></svg></div>
+        <div><strong>TouchBridge</strong><span id="appVersionValue" class="about-version">Version 0.9.0</span></div>
       </section>
       <section class="settings-group">
         <h3>Project</h3>
-        <button id="openRepositoryButton" class="settings-link" type="button"><span><strong>GitHub repository</strong><small>github.com/Spont-427/touchbridge-controller</small></span><span>↗</span></button>
+        <button id="openRepositoryButton" class="settings-link" type="button"><span><strong>GitHub repository</strong><small>github.com/Spont-427/touchbridge-controller</small></span><svg class="settings-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg></button>
         <p class="setting-help">Controller profiles, layouts and input run locally. Only controller input is sent to a paired computer on your network.</p>
       </section>
       <section class="settings-group">
@@ -194,8 +194,8 @@
     </section>
 
     <section id="layoutsScreen" class="screen sub-screen layouts-screen" hidden>
-      <header class="screen-header"><button id="layoutsBackButton" class="text-button" type="button">← Back</button><div><span class="eyebrow">LAYOUTS</span><h2>Manage layouts</h2></div></header>
-      <div class="devices-intro"><p>Create a layout for a game, or duplicate one and adapt it. New layouts start with the Xbox-style controls.</p><button id="newLayoutButton" class="secondary-button" type="button">New layout</button></div>
+      <header class="screen-header"><button id="layoutsBackButton" class="icon-button screen-back" type="button" aria-label="Back to settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><div class="screen-header-copy"><span class="eyebrow">LAYOUTS</span><h2>Manage layouts</h2><p class="screen-description">Create a setup, then make it your own.</p></div></header>
+      <div class="devices-intro"><div><h3>Your layouts, your way</h3><p>New layouts start with a complete Xbox-style setup you can edit.</p></div><button id="newLayoutButton" class="secondary-button" type="button">New layout</button></div>
       <form id="newLayoutForm" class="layout-create" hidden>
         <label for="newLayoutName">Layout name</label>
         <div class="layout-create-row"><input id="newLayoutName" type="text" maxlength="30" autocomplete="off" placeholder="e.g. Elden Ring"><button class="primary-button" type="submit">Create</button><button id="cancelNewLayout" class="text-button" type="button">Cancel</button></div>
@@ -215,11 +215,11 @@
     </section>
   </main>
   <nav id="bottomNav" class="bottom-nav" aria-label="Main navigation">
-    <button type="button" class="bottom-nav-item active" data-nav-screen="home" aria-current="page"><span class="bottom-nav-icon">⌗</span><span>Layouts</span></button>
-    <button type="button" class="bottom-nav-item" data-nav-screen="devices"><span class="bottom-nav-icon">▣</span><span>Computers</span></button>
-    <button type="button" class="bottom-nav-item" data-nav-screen="settings"><span class="bottom-nav-icon">⚙</span><span>Settings</span></button>
+    <button type="button" class="bottom-nav-item active" data-nav-screen="home" aria-current="page"><span class="bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg></span><span>Layouts</span></button>
+    <button type="button" class="bottom-nav-item" data-nav-screen="devices"><span class="bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span><span>Computers</span></button>
+    <button type="button" class="bottom-nav-item" data-nav-screen="settings"><span class="bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.7a8 8 0 0 1-1.5.9l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.5-.9l-1.7.7-1.4-2.4 1.4-1.1a7 7 0 0 1 0-1.8l-1.4-1.1 1.4-2.4 1.7.7a8 8 0 0 1 1.5-.9l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.5.9l1.7-.7 1.4 2.4-1.4 1.1a7 7 0 0 1 0 1.8Z"/></svg></span><span>Settings</span></button>
   </nav>
-  <script src="/gamepad-core.js?v=0.8.0" defer></script>
-  <script src="/app.js?v=0.8.0" defer></script>
+  <script src="/gamepad-core.js?v=0.9.0-md3.2" defer></script>
+  <script src="/app.js?v=0.9.0-md3.2" defer></script>
 </body>
 </html>

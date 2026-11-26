@@ -4,28 +4,15 @@ TouchBridge turns Android phones into customizable wireless controllers for a Wi
 
 [GitHub repository](https://github.com/Spont-427/touchbridge-controller) · [Releases](https://github.com/Spont-427/touchbridge-controller/releases) · [Report a bug](https://github.com/Spont-427/touchbridge-controller/issues)
 
-**Version:** `0.8.0` · **Release status:** preparing the next stable release
+**Version:** `0.9.0` · **Release status:** preparing the next stable release
 
-## Screenshots
+## Screenshot
 
-**Controller layout**
+The landscape controller and layout editor retain their established visual design. The v0.9.0 refresh applies to the portrait library, computer connection and settings screens.
 
 <p align="center">
-  <img src="docs/screenshots/controller-landscape.jpg" alt="TouchBridge controller layout" width="100%">
+  <img src="docs/screenshots/controller-landscape.jpg" alt="TouchBridge landscape controller" width="100%">
 </p>
-
-**Android app**
-
-<table>
-  <tr>
-    <th align="center">Layout library</th>
-    <th align="center">Settings</th>
-  </tr>
-  <tr>
-    <td align="center"><img src="docs/screenshots/layout-library.jpg" alt="TouchBridge layout library" width="260"></td>
-    <td align="center"><img src="docs/screenshots/settings.jpg" alt="TouchBridge settings" width="260"></td>
-  </tr>
-</table>
 
 ## Download
 
@@ -34,15 +21,15 @@ You need the Android app on each phone and the desktop server on your PC. Downlo
 ### Android app
 
 <p>
-  <a href="https://github.com/Spont-427/touchbridge-controller/releases/download/v0.8.0/TouchBridge-0.8.0.apk">
+  <a href="https://github.com/Spont-427/touchbridge-controller/releases/download/v0.9.0/TouchBridge-0.9.0.apk">
     <img src="docs/assets/touchbridge-app-icon.png" alt="TouchBridge app icon" width="36" height="36" align="middle">
-    <strong>Download TouchBridge 0.8.0 for Android</strong>
+    <strong>Download TouchBridge 0.9.0 for Android</strong>
   </a>
 </p>
 
-The stable APK includes the TouchBridge launcher icon, so the app is identifiable in the Android app drawer and installer. It is signed with the project's private release key and is the recommended download for normal use.
+The stable APK includes the TouchBridge launcher icon, including adaptive and density-specific resources. It is signed with the project's private release key and is the recommended download for normal use.
 
-[Download the separate debug APK (for testing)](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.8.0/TouchBridge-0.8.0-debug.apk)
+[Download the separate debug APK (for testing)](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.9.0/TouchBridge-0.9.0-debug.apk)
 
 The debug APK is debug-signed and may expose WebView debugging. Use it for testing and troubleshooting, not as the normal stable installation. The `Release downloads` workflow builds and attaches it automatically. Only install APKs from the official TouchBridge Releases page. Android may still show its normal prompt for installing apps from outside the Play Store; an app icon does not replace Android's installation and security checks.
 
@@ -58,21 +45,28 @@ Choose the package for your PC:
 
 | PC | Download | Start it |
 |---|---|---|
-| Windows x64 (Intel/AMD) | [TouchBridge for Windows (.zip)](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.8.0/TouchBridge-Windows-x64.zip) | Extract the ZIP and double-click `Start-TouchBridge.bat`. Run `Setup-TouchBridge-Windows.bat` once for virtual gamepad support. |
-| Linux x86_64 | [TouchBridge for Linux x86_64 (.tar.gz)](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.8.0/TouchBridge-Linux-x86_64.tar.gz) | Extract the archive and run `./Install-TouchBridge-Linux.sh` in a terminal. |
-| Linux ARM64 | [TouchBridge for Linux ARM64 (.tar.gz)](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.8.0/TouchBridge-Linux-ARM64.tar.gz) | Extract the archive and run `./Install-TouchBridge-Linux.sh` in a terminal. |
+| Windows x64 (Intel/AMD) | [TouchBridge for Windows (.zip)](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.9.0/TouchBridge-Windows-x64.zip) | Extract the ZIP and double-click `Start-TouchBridge.bat`. Run `Setup-TouchBridge-Windows.bat` once for virtual gamepad support. |
+| Linux x86_64 | [TouchBridge for Linux x86_64 (.tar.gz)](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.9.0/TouchBridge-Linux-x86_64.tar.gz) | Extract the archive and run `./Install-TouchBridge-Linux.sh` in a terminal. |
+| Linux ARM64 | [TouchBridge for Linux ARM64 (.tar.gz)](https://github.com/Spont-427/touchbridge-controller/releases/download/v0.9.0/TouchBridge-Linux-ARM64.tar.gz) | Extract the archive and run `./Install-TouchBridge-Linux.sh` in a terminal. |
 
-The `Release downloads` GitHub Actions workflow builds and attaches the Windows and Linux packages plus the Android debug APK when a GitHub Release is published. Build the stable signed APK on your release machine with `scripts/build-android-release.sh`, then upload `TouchBridge-0.8.0.apk` to the same release.
+The `Release downloads` GitHub Actions workflow builds and attaches the Windows and Linux packages plus the Android debug APK when a GitHub Release is published. Build the stable signed APK on your release machine with `scripts/build-android-release.sh`, then upload `TouchBridge-0.9.0.apk` to the same release. Use the same private release keystore that signed v0.8.0.
+
+## What's new in 0.9.0
+
+- Redesigned layout library with controller previews, a visible current-layout indicator, and clearer Play/Edit actions.
+- Reworked computer discovery, manual pairing instructions and saved/nearby computer sections.
+- Reorganized settings into clearer groups with updated labels and descriptions.
+- Consistent SVG interface icons and a refreshed centered-phone app mark.
+- Light, dark and AMOLED themes with larger touch targets, visible focus styles and safe-area spacing.
+- New screen transitions and top-of-screen navigation, with reduced-motion support.
+- The landscape controller and layout editor visuals are unchanged.
 
 ## Features
 
 - Connect up to four Android phones to one PC at the same time. Each phone receives its own player slot (`P1`–`P4`) and virtual gamepad.
-- A fifth connection is refused while all four slots are in use. Disconnected player slots are reused.
-- Each player has independent gamepad state. Shared keyboard keys and mouse buttons remain held until their last player releases them.
 - Customizable layouts with analog sticks, D-pad, face buttons, triggers, steering wheel and racing pedals.
-- Adaptive sticks move the complete stick face to the first touch point for the duration of the gesture; fixed-centre mode is also available.
 - Import and export controller layouts as JSON. Older `Stick click L/R` labels are migrated to `L3/R3 click`.
-- Keep the phone screen awake while the controller is open. This is enabled by default and can be changed under **Settings → Controls & haptics**.
+- Keep the phone screen awake while the controller is open. This is enabled by default and can be changed under **Settings → Buttons & feedback**.
 - Check for stable Android updates from **Settings → About**. Downloaded APKs are checked against the installed package and signing certificate before Android's installer is opened.
 - PIN pairing, trusted reconnection and automatic PC discovery.
 - Linux mouse, keyboard and virtual gamepad support through `/dev/uinput`.
@@ -144,6 +138,7 @@ The in-app updater checks the APK package name, version, version code and signin
 - [Linux setup](docs/linux-setup.md)
 - [Windows gamepad](docs/windows-gamepad.md)
 - [Controller UI](docs/controller-ui.md)
+- [TouchBridge design system](design-system/touchbridge/MASTER.md)
 - [Network protocol](docs/protocol.md)
 - [Validation record](docs/validation.md)
 - [Security notes](SECURITY.md)

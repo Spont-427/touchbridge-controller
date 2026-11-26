@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.9.0 — 2026-11-26 — Android interface redesign
+
+- Redesign the portrait layout library with clearer cards, controller previews, an `In use` marker for the active layout, and distinct Play/Edit actions.
+- Rework computer discovery and manual pairing guidance, labels, and saved/nearby computer sections.
+- Reorganize Settings into clearer groups with revised labels and descriptions.
+- Replace interface text-glyph icons with consistent inline SVGs and align the settings icon containers.
+- Start newly opened screens at the top and add subtle screen transitions that respect reduced-motion preferences.
+- Recreate the centered phone mark and apply it to the Layouts header and Android launcher icon, including adaptive and density-specific resources.
+- Add Material 3-inspired light, dark and AMOLED surfaces, larger touch targets, visible focus styles and safe-area spacing.
+- Add the TouchBridge design-system reference and update Android UI documentation.
+- Keep the landscape controller and layout editor visuals outside the redesign.
+- Bump Android and desktop version to `0.9.0` (`versionCode` 15) and the service-worker shell cache to v14.
+
 ## 0.8.0 — 2026-11-25 — in-app updates and controller refinements
 
 - Add an Android in-app update flow that checks the latest stable GitHub release and selects the matching stable or debug APK asset.

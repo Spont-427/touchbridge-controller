@@ -72,6 +72,7 @@ class MainActivity : Activity() {
     private var webView: WebView? = null
     private var immersiveLandscape = false
     private var lightTheme = false
+    private var amoledTheme = true
     private var pendingFileChooser: ValueCallback<Array<Uri>>? = null
     private var pendingExportContent: String? = null
     private var pendingExportFilename = "touchbridge-layout.json"
@@ -96,7 +97,8 @@ class MainActivity : Activity() {
         private const val UPDATE_API_URL = "https://api.github.com/repos/Spont-427/touchbridge-controller/releases/latest"
         private const val UPDATE_INSTALL_ACTION = "io.github.touchbridge.mobile.UPDATE_INSTALL_STATUS"
         private const val UPDATE_MAX_BYTES = 200L * 1024 * 1024
-        private val THEME_LIGHT_BG = 0xFFF4F4F1.toInt()
+        private val THEME_LIGHT_BG = 0xFFF7F5FA.toInt()
+        private val THEME_DARK_BG = 0xFF141218.toInt()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -332,7 +334,8 @@ class MainActivity : Activity() {
         fun setThemeMode(mode: String) {
             mainHandler.post {
                 lightTheme = mode.equals("light", ignoreCase = true)
-                webView?.setBackgroundColor(if (lightTheme) THEME_LIGHT_BG else android.graphics.Color.BLACK)
+                amoledTheme = mode.equals("amoled", ignoreCase = true)
+                webView?.setBackgroundColor(themeSurfaceColor())
                 applySystemBars()
             }
         }
@@ -876,8 +879,8 @@ class MainActivity : Activity() {
     private fun applySystemBars() {
         // Android 15+ draws edge-to-edge for targetSdk 35, so the colours are
         // advisory; the icon appearance flags are what keep the bars readable.
-        window.statusBarColor = if (lightTheme) THEME_LIGHT_BG else android.graphics.Color.BLACK
-        window.navigationBarColor = if (lightTheme) THEME_LIGHT_BG else android.graphics.Color.BLACK
+        window.statusBarColor = themeSurfaceColor()
+        window.navigationBarColor = themeSurfaceColor()
         var flags = window.decorView.systemUiVisibility
         flags = if (lightTheme) {
             var next = flags or android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
@@ -893,6 +896,12 @@ class MainActivity : Activity() {
             next
         }
         window.decorView.systemUiVisibility = flags
+    }
+
+    private fun themeSurfaceColor(): Int = when {
+        lightTheme -> THEME_LIGHT_BG
+        amoledTheme -> android.graphics.Color.BLACK
+        else -> THEME_DARK_BG
     }
 
     @Suppress("DEPRECATION")

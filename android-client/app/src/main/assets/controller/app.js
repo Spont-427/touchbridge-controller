@@ -1,6 +1,39 @@
 (() => {
   'use strict';
   const $ = (id) => document.getElementById(id);
+  const uiIcons = {
+    back: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>',
+    computer: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>',
+    pointer: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 3 14 10-7 1-3 7L5 3Z"/></svg>',
+    keyboard: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h.01M11 9h.01M15 9h.01M7 12h.01M11 12h.01M15 12h.01M8 15h8"/></svg>',
+    crosshair: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg>',
+    tune: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10m4 0h2M4 12h2m4 0h10M4 18h10m4 0h2"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="18" r="2"/></svg>'
+  };
+  for (const [id, label] of Object.entries({
+    appearanceBackButton: 'Back to settings', controlsBackButton: 'Back to settings',
+    sticksBackButton: 'Back to settings', aboutBackButton: 'Back to settings',
+    layoutsBackButton: 'Back to settings', toolsBackButton: 'Back to settings'
+  })) {
+    const button = $(id);
+    if (!button) continue;
+    button.classList.remove('text-button');
+    button.classList.add('icon-button', 'screen-back');
+    button.setAttribute('aria-label', label);
+    button.title = label;
+    button.innerHTML = uiIcons.back;
+  }
+  const homeDevicesButton = $('homeDevicesButton');
+  if (homeDevicesButton) homeDevicesButton.innerHTML = uiIcons.computer;
+  const settingsNavIcon = document.querySelector('[data-nav-screen="settings"] .bottom-nav-icon');
+  if (settingsNavIcon) settingsNavIcon.innerHTML = uiIcons.tune;
+  document.querySelectorAll('.mode-tab[data-view="mouseView"]').forEach(button => { button.innerHTML = `${uiIcons.pointer}<span>Mouse</span>`; });
+  document.querySelectorAll('.mode-tab[data-view="keyboardView"]').forEach(button => { button.innerHTML = `${uiIcons.keyboard}<span>Keyboard</span>`; });
+  const crosshair = document.querySelector('.touchpad-prompt .crosshair');
+  if (crosshair) crosshair.innerHTML = uiIcons.crosshair;
+  const scrollUpButton = $('scrollUp');
+  const scrollDownButton = $('scrollDown');
+  if (scrollUpButton) scrollUpButton.textContent = 'Scroll up';
+  if (scrollDownButton) scrollDownButton.textContent = 'Scroll down';
   const core = window.TouchBridgeGamepad;
   const badge = $('connectionBadge');
   const statusText = $('statusText');
@@ -130,6 +163,7 @@
   let editorGridEnabled = true;
   let editorSnapEnabled = true;
   let currentScreen = 'home';
+  const screenScrollPositions = new Map();
   let editorReturnScreen = 'home';
   let selectedServer = null;
   let connectedServerVersion = '';
@@ -160,10 +194,10 @@
     forza: { name: 'Forza Horizon', subtitle: 'Driving · Triggers', art: 'forza' }
   });
   const PROFILE_ART = Object.freeze({
-    generic: '<span class="mini-stick"></span><span class="mini-dpad">✣</span><span class="mini-face">A B<br>X Y</span><span class="mini-stick right"></span>',
-    gta: '<span class="mini-stick"></span><span class="mini-face">A B<br>X Y</span><span class="mini-stick right"></span>',
-    rdr: '<span class="mini-stick"></span><span class="mini-dpad">✣</span><span class="mini-face">A B<br>X Y</span><span class="mini-stick right"></span>',
-    forza: '<span class="mini-trigger">LT</span><span class="mini-steering">◎</span><span class="mini-trigger right">RT</span>'
+    generic: '<svg class="controller-preview" viewBox="0 0 320 140" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="60" cy="94" r="22"/><circle cx="60" cy="94" r="7"/><circle cx="260" cy="94" r="22"/><circle cx="260" cy="94" r="7"/><circle cx="232" cy="43" r="9"/><circle cx="214" cy="61" r="9"/><circle cx="250" cy="61" r="9"/><circle cx="232" cy="79" r="9"/></g><g fill="currentColor" opacity=".82"><rect x="126" y="39" width="15" height="15" rx="3"/><rect x="110" y="55" width="15" height="15" rx="3"/><rect x="126" y="71" width="15" height="15" rx="3"/><rect x="142" y="55" width="15" height="15" rx="3"/></g><g fill="currentColor" font-family="system-ui, sans-serif" font-size="8" font-weight="700" text-anchor="middle" dominant-baseline="central"><text x="232" y="43">Y</text><text x="214" y="61">X</text><text x="250" y="61">B</text><text x="232" y="79">A</text></g></svg>',
+    gta: '<svg class="controller-preview" viewBox="0 0 320 140" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="60" cy="94" r="22"/><circle cx="60" cy="94" r="7"/><circle cx="260" cy="94" r="22"/><circle cx="260" cy="94" r="7"/><circle cx="222" cy="43" r="9"/><circle cx="204" cy="61" r="9"/><circle cx="240" cy="61" r="9"/><circle cx="222" cy="79" r="9"/></g><g fill="currentColor" font-family="system-ui, sans-serif" font-size="8" font-weight="700" text-anchor="middle" dominant-baseline="central"><text x="222" y="43">Y</text><text x="204" y="61">X</text><text x="240" y="61">B</text><text x="222" y="79">A</text></g></svg>',
+    rdr: '<svg class="controller-preview" viewBox="0 0 320 140" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="60" cy="94" r="22"/><circle cx="60" cy="94" r="7"/><circle cx="260" cy="94" r="22"/><circle cx="260" cy="94" r="7"/><circle cx="232" cy="43" r="9"/><circle cx="214" cy="61" r="9"/><circle cx="250" cy="61" r="9"/><circle cx="232" cy="79" r="9"/></g><g fill="currentColor" opacity=".82"><rect x="126" y="39" width="15" height="15" rx="3"/><rect x="110" y="55" width="15" height="15" rx="3"/><rect x="126" y="71" width="15" height="15" rx="3"/><rect x="142" y="55" width="15" height="15" rx="3"/></g><g fill="currentColor" font-family="system-ui, sans-serif" font-size="8" font-weight="700" text-anchor="middle" dominant-baseline="central"><text x="232" y="43">Y</text><text x="214" y="61">X</text><text x="250" y="61">B</text><text x="232" y="79">A</text></g></svg>',
+    forza: '<svg class="controller-preview" viewBox="0 0 320 140" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="38" y="20" width="58" height="24" rx="12"/><rect x="224" y="20" width="58" height="24" rx="12"/><circle cx="160" cy="76" r="37"/><circle cx="160" cy="76" r="13"/><path d="M160 39v24m-31 13 20 0m42 0h-20M160 89v23"/></g><g fill="currentColor" font-family="system-ui, sans-serif" font-size="10" font-weight="700" text-anchor="middle" dominant-baseline="central"><text x="67" y="32">LT</text><text x="253" y="32">RT</text></g></svg>'
   });
   const PROFILES_KEY = 'touchbridge.profiles';
   const LAYOUT_STATUS_DEFAULT = 'Preset layouts can be duplicated but not deleted.';
@@ -445,7 +479,12 @@
     renderGamepadLayout();
   }
 
-  function setScreen(screen) {
+  function setScreen(screen, options = {}) {
+    const previousScreen = currentScreen;
+    if (previousScreen !== screen) {
+      screenScrollPositions.set(previousScreen, window.scrollY || document.documentElement.scrollTop || 0);
+      if (!options.restoreScroll) screenScrollPositions.delete(screen);
+    }
     currentScreen = screen;
     homeScreen.hidden = screen !== 'home';
     devicesScreen.hidden = screen !== 'devices';
@@ -458,6 +497,11 @@
     aboutScreen.hidden = screen !== 'about';
     layoutsScreen.hidden = screen !== 'layouts';
     toolsScreen.hidden = screen !== 'tools';
+    const targetScrollY = options.restoreScroll ? (screenScrollPositions.get(screen) || 0) : 0;
+    window.scrollTo(0, targetScrollY);
+    if (window.scrollY !== targetScrollY) {
+      requestAnimationFrame(() => window.scrollTo(0, targetScrollY));
+    }
     if (bottomNav) {
       bottomNav.hidden = screen === 'controller' || screen === 'editor';
       const settingsChildren = ['tools', 'layouts', 'appearance', 'controls', 'sticks', 'about'];
@@ -548,7 +592,7 @@
         return true;
       }
       if (currentScreen === 'controller') { setScreen('home'); return true; }
-      if (['layouts', 'appearance', 'controls', 'sticks', 'about', 'tools'].includes(currentScreen)) { setScreen('settings'); return true; }
+      if (['layouts', 'appearance', 'controls', 'sticks', 'about', 'tools'].includes(currentScreen)) { setScreen('settings', { restoreScroll: true }); return true; }
       if (currentScreen === 'devices' || currentScreen === 'settings') { setScreen('home'); return true; }
       if (currentScreen === 'home') return false;
       return false;
@@ -556,15 +600,15 @@
   };
 
   $('homeDevicesButton').addEventListener('click', () => { setScreen('devices'); scanDevices(); });
-  $('toolsBackButton').addEventListener('click', () => setScreen('settings'));
+  $('toolsBackButton').addEventListener('click', () => setScreen('settings', { restoreScroll: true }));
   $('settingsAppearanceButton').addEventListener('click', () => setScreen('appearance'));
   $('settingsControlsButton').addEventListener('click', () => setScreen('controls'));
   $('settingsSticksButton').addEventListener('click', () => setScreen('sticks'));
   $('settingsAboutButton').addEventListener('click', () => setScreen('about'));
-  $('appearanceBackButton').addEventListener('click', () => setScreen('settings'));
-  $('controlsBackButton').addEventListener('click', () => setScreen('settings'));
-  $('sticksBackButton').addEventListener('click', () => setScreen('settings'));
-  $('aboutBackButton').addEventListener('click', () => setScreen('settings'));
+  $('appearanceBackButton').addEventListener('click', () => setScreen('settings', { restoreScroll: true }));
+  $('controlsBackButton').addEventListener('click', () => setScreen('settings', { restoreScroll: true }));
+  $('sticksBackButton').addEventListener('click', () => setScreen('settings', { restoreScroll: true }));
+  $('aboutBackButton').addEventListener('click', () => setScreen('settings', { restoreScroll: true }));
   $('scanButton').addEventListener('click', scanDevices);
   $('settingsToolsButton').addEventListener('click', () => setScreen('tools'));
   $('settingsLayoutsButton').addEventListener('click', () => {
@@ -575,7 +619,7 @@
     setScreen('layouts');
     setLayoutStatus(LAYOUT_STATUS_DEFAULT);
   });
-  $('layoutsBackButton').addEventListener('click', () => setScreen('settings'));
+  $('layoutsBackButton').addEventListener('click', () => setScreen('settings', { restoreScroll: true }));
   newLayoutButton.addEventListener('click', () => {
     newLayoutForm.hidden = false;
     newLayoutButton.disabled = true;
@@ -717,7 +761,7 @@
   function renderDeviceCard(server, remembered) {
     const card = document.createElement('article');
     card.className = 'device-row';
-    const icon = document.createElement('span'); icon.className = 'device-icon'; icon.textContent = '▣';
+    const icon = document.createElement('span'); icon.className = 'device-icon'; icon.innerHTML = uiIcons.computer;
     const meta = document.createElement('span'); meta.className = 'device-meta';
     const name = document.createElement('strong'); name.textContent = server.name || 'TouchBridge computer';
     const address = document.createElement('small'); address.textContent = String(server.url || '').replace(/^https?:\/\//, '');
@@ -1209,7 +1253,7 @@
     profileGrid.replaceChildren();
     for (const profile of profiles) {
       const card = document.createElement('article');
-      card.className = 'profile-card';
+      card.className = `profile-card${profile.id === activeProfile ? ' is-current' : ''}`;
       card.dataset.profileCard = profile.id;
       const art = document.createElement('div');
       art.className = `profile-art ${PRESET_CARDS[profile.id]?.art || 'generic'}-art`;
@@ -1224,6 +1268,12 @@
       small.textContent = profile.subtitle;
       text.append(strong, small);
       copy.append(text);
+      if (profile.id === activeProfile) {
+        const current = document.createElement('span');
+        current.className = 'profile-current-label';
+        current.textContent = 'In use';
+        copy.append(current);
+      }
       const actions = document.createElement('div');
       actions.className = 'profile-card-actions';
       const play = document.createElement('button');
@@ -1241,8 +1291,8 @@
     const customCount = profiles.filter(profile => !profile.preset).length;
     if (libraryCount) {
       libraryCount.textContent = customCount
-        ? `${profiles.length - customCount} PRESETS · ${customCount} CUSTOM`
-        : `${profiles.length} PRESETS`;
+        ? `${profiles.length - customCount} presets · ${customCount} custom`
+        : `${profiles.length} presets`;
     }
   }
   function renderProfileOptions() {
@@ -2161,7 +2211,7 @@
   }
   const appVersion = window.TouchBridgeAndroid?.getAppVersion?.()
     || document.querySelector('meta[name="touchbridge-version"]')?.content
-    || '0.8.0';
+    || '0.9.0';
   if (appVersionValue) appVersionValue.textContent = `Version ${appVersion}`;
   if (checkUpdatesButton) {
     if (!window.TouchBridgeAndroid?.checkForUpdates) {

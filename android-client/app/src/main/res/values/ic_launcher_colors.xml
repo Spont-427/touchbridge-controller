@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="touchbridge_launcher_background">#131C2A</color>
+    <color name="touchbridge_launcher_background">#EADDFF</color>
+    <color name="touchbridge_launcher_foreground">#21005D</color>
 </resources>

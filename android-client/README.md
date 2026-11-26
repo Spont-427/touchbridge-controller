@@ -1,16 +1,19 @@
 # TouchBridge Android client
 
-This is the Android client for **TouchBridge 0.8.0**. Its controller interface is bundled inside the APK under `app/src/main/assets/controller/`, so the app can show the home screen, select profiles, edit layouts, preview controls and save preferences without a running desktop server.
+This is the Android client for **TouchBridge 0.9.0**. Its controller interface is bundled inside the APK under `app/src/main/assets/controller/`, so the app can show the home screen, select profiles, edit layouts, preview controls and save preferences without a running desktop server.
 
 ## Features
 
+- Redesigned Material 3-inspired portrait layout library with controller previews, current-layout status and clear Play/Edit actions.
+- Reworked computer discovery and manual pairing screens, and reorganized settings.
+- Light, dark and AMOLED themes, consistent SVG icons, accessible focus states and safe-area spacing.
 - Local controller UI with offline profile selection and persistent layout editing.
 - Create, edit, duplicate, import and export custom layouts.
 - Native Android document picker import and save-dialog export for JSON layouts, with compatibility for more document providers.
 - Legacy `Stick click L/R` labels are migrated to `L3/R3 click` when saved or imported layouts are loaded.
 - Adaptive sticks move the complete stick face to the first touch point; fixed-centre mode is also available.
 - Multiplayer support for up to four phones, each with its own player badge and virtual gamepad slot.
-- Keep the display awake while the controller screen is open; the setting is enabled by default and can be changed in Controls & haptics.
+- Keep the display awake while the controller screen is open; the setting is enabled by default and can be changed in Buttons & feedback.
 - Analog pedals, steering wheel, optional gyro steering and digital/analog trigger modes.
 - Live latency display with RTT, p95 and jitter details.
 - System, Dark, AMOLED black and Light themes.
@@ -26,7 +29,7 @@ For a debug APK, run `../../scripts/build-android-debug.sh` from the repository 
 
 The shared web UI is copied from `../../internal/web/web/`. After editing those files, run `../../scripts/sync-android-assets.sh` from the repository root. `scripts/check.sh` verifies that the Android copy is up to date.
 
-The version is `0.8.0` (`versionCode` 14); `minSdk` is 23 and the project targets SDK 35. Android 17 (API 37) requires the `ACCESS_LOCAL_NETWORK` runtime permission for apps targeting API 37 or higher; do not raise the target SDK until this permission and its rationale/denial flow are implemented. Apps targeting 35 still use the legacy `INTERNET`-permission behaviour described by Android's [local network permission guide](https://developer.android.com/privacy-and-security/local-network-permission).
+The version is `0.9.0` (`versionCode` 15); `minSdk` is 23 and the project targets SDK 35. Android 17 (API 37) requires the `ACCESS_LOCAL_NETWORK` runtime permission for apps targeting API 37 or higher; do not raise the target SDK until this permission and its rationale/denial flow are implemented. Apps targeting 35 still use the legacy `INTERNET`-permission behaviour described by Android's [local network permission guide](https://developer.android.com/privacy-and-security/local-network-permission).
 
 ## Network permissions
 

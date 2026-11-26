@@ -1,8 +1,8 @@
 (() => {
   'use strict';
   const KEY = 'touchbridge.theme';
-  const LIGHT_BG = '#f4f4f1';
-  const DARK_BG = '#0f141b';
+  const LIGHT_BG = '#f7f5fa';
+  const DARK_BG = '#141218';
   const AMOLED_BG = '#000000';
   const query = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
 
@@ -27,7 +27,7 @@
     if (meta) meta.setAttribute('content', theme === 'light' ? LIGHT_BG : theme === 'amoled' ? AMOLED_BG : DARK_BG);
     try {
       if (window.TouchBridgeAndroid && window.TouchBridgeAndroid.setThemeMode) {
-        window.TouchBridgeAndroid.setThemeMode(theme === 'light' ? 'light' : 'dark');
+        window.TouchBridgeAndroid.setThemeMode(theme);
       }
     } catch (_) {
       // Browser previews and older hosts simply keep their native bars.
